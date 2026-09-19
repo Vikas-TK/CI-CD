@@ -28,7 +28,7 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for Sonar analysis
+          fetch-depth: 0
 
       # STAGE 2 — PYTHON SETUP
       - name: Set up Python ${{ matrix.python-version }}
@@ -45,10 +45,8 @@ jobs:
       # STAGE 3 — BUILD AND VALIDATION
       - name: Lint and Syntax Validation (Flake8)
         run: |
-          # Stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit-zero treats all errors as warnings. Max line length set to 127
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Validate Application Import and Configuration
         run: |
@@ -61,28 +59,28 @@ jobs:
           WTF_CSRF_ENABLED: "false"
         run: |
           mkdir -p test-results
-          pytest -v \
-            --junitxml=test-results/junit.xml \
-            --cov=app \
-            --cov-report=xml:test-results/coverage.xml \
-            --cov-report=term-missing
+          python -m pytest -v --junitxml=test-results/junit.xml --cov=app --cov-report=xml:test-results/coverage.xml --cov-report=term-missing
 
       - name: Upload Test Results and Coverage Artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-py${{ matrix.python-version }}
+          name: test-results-python-${{ matrix.python-version }}
           path: test-results/
           retention-days: 14
 
       # STAGE 5 — SONARQUBE / SONARCLOUD STATIC ANALYSIS
       - name: SonarQube / SonarCloud Code Quality Analysis
-        if: matrix.python-version == '3.11' && secrets.SONAR_TOKEN != ''
+        if: ${{ secrets.SONAR_TOKEN != '' && matrix.python-version == '3.11' }}
         uses: SonarSource/sonarqube-scan-action@v4
         continue-on-error: true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+
+      - name: SonarCloud Notice (Skipped when token not set)
+        if: ${{ secrets.SONAR_TOKEN == '' && matrix.python-version == '3.11' }}
+        run: echo "SONAR_TOKEN secret is not set in repository secrets. Skipping SonarCloud scan."
 
       # STAGE 6 — WORKFLOW RESULT SUMMARY
       - name: CI Summary Report
