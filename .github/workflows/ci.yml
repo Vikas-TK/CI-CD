@@ -77,13 +77,13 @@ jobs:
 
       # STAGE 5 — SONARQUBE / SONARCLOUD STATIC ANALYSIS
       - name: SonarCloud / SonarQube Code Quality Analysis
-        if: matrix.python-version == '3.11' && (env.SONAR_TOKEN != null || github.actor != 'dependabot[bot]')
-        uses: SonarSource/sonarcloud-github-action@master
-        continue-on-error: true  # Prevents hard CI failure if Sonar token is not yet configured in repository secrets
+        if: matrix.python-version == '3.11' && secrets.SONAR_TOKEN != ''
+        uses: SonarSource/sonarcloud-github-action@v3.1.0
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
 
       # STAGE 6 — WORKFLOW RESULT SUMMARY
       - name: CI Summary Report
