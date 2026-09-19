@@ -10,14 +10,14 @@ class BaseConfig:
     """Base configuration settings shared across all environments."""
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-fallback-secret-key-replace-in-production-12345")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
+
     # Session Configuration
     PERMANENT_SESSION_LIFETIME = timedelta(
         seconds=int(os.environ.get("PERMANENT_SESSION_LIFETIME", 3600))
     )
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
-    
+
     # CSRF settings
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = 3600
@@ -27,13 +27,13 @@ class DevelopmentConfig(BaseConfig):
     """Development environment configuration."""
     DEBUG = True
     TESTING = False
-    
+
     db_user = os.environ.get("DB_USER")
     db_pass = os.environ.get("DB_PASSWORD")
     db_host = os.environ.get("DB_HOST", "localhost")
     db_port = os.environ.get("DB_PORT", "3306")
     db_name = os.environ.get("DB_NAME", "hospital_management_db")
-    
+
     if os.environ.get("DATABASE_URL"):
         SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
     elif db_user and db_pass:
@@ -56,13 +56,13 @@ class StagingConfig(BaseConfig):
     DEBUG = False
     TESTING = False
     SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
-    
+
     db_user = os.environ.get("DB_USER", "hms_user")
     db_pass = os.environ.get("DB_PASSWORD", "")
     db_host = os.environ.get("DB_HOST", "localhost")
     db_port = os.environ.get("DB_PORT", "3306")
     db_name = os.environ.get("DB_NAME", "hospital_staging_db")
-    
+
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL",
         f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
@@ -74,13 +74,13 @@ class ProductionConfig(BaseConfig):
     DEBUG = False
     TESTING = False
     SESSION_COOKIE_SECURE = True
-    
+
     db_user = os.environ.get("DB_USER")
     db_pass = os.environ.get("DB_PASSWORD")
     db_host = os.environ.get("DB_HOST", "localhost")
     db_port = os.environ.get("DB_PORT", "3306")
     db_name = os.environ.get("DB_NAME", "hospital_management_db")
-    
+
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL",
         f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"

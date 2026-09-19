@@ -1,7 +1,5 @@
-import pytest
 from app import db
 from app.models.user import User, Role
-from app.services.user_service import UserService
 
 
 def test_admin_dashboard_metrics(client, admin_user, doctor_user, patient_user):

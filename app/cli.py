@@ -15,11 +15,16 @@ def register_cli_commands(app):
         click.echo(click.style("Database tables successfully created.", fg="green"))
 
     @app.cli.command("create-admin")
-    @click.option("--email", default=lambda: os.environ.get("INITIAL_ADMIN_EMAIL", "admin@hospital.org"), help="Admin email address")
-    @click.option("--password", default=lambda: os.environ.get("INITIAL_ADMIN_PASSWORD", "AdminPass123!"), help="Admin password")
-    @click.option("--first-name", default=lambda: os.environ.get("INITIAL_ADMIN_FIRST_NAME", "System"), help="First name")
-    @click.option("--last-name", default=lambda: os.environ.get("INITIAL_ADMIN_LAST_NAME", "Admin"), help="Last name")
-    @click.option("--phone", default=lambda: os.environ.get("INITIAL_ADMIN_PHONE", "+1000000001"), help="Phone number")
+    @click.option("--email", default=lambda: os.environ.get("INITIAL_ADMIN_EMAIL", "admin@hospital.org"),
+                  help="Admin email address")
+    @click.option("--password", default=lambda: os.environ.get("INITIAL_ADMIN_PASSWORD", "AdminPass123!"),
+                  help="Admin password")
+    @click.option("--first-name", default=lambda: os.environ.get("INITIAL_ADMIN_FIRST_NAME", "System"),
+                  help="First name")
+    @click.option("--last-name", default=lambda: os.environ.get("INITIAL_ADMIN_LAST_NAME", "Admin"),
+                  help="Last name")
+    @click.option("--phone", default=lambda: os.environ.get("INITIAL_ADMIN_PHONE", "+1000000001"),
+                  help="Phone number")
     def create_admin(email, password, first_name, last_name, phone):
         """CLI command to safely bootstrap the initial Administrator account."""
         db.create_all()
