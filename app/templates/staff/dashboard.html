@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Dashboard - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col-md-8">
+        <h2 class="fw-bold mb-1"><i class="bi bi-briefcase text-success me-2"></i> Staff Operational Portal</h2>
+        <p class="text-muted mb-0">Welcome {{ current_user.full_name }}. Manage hospital front-desk, admissions, rooms, and billing.</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <span class="badge bg-success text-white fs-6 px-3 py-2 rounded-pill"><i class="bi bi-shield-check me-1"></i> Staff Privileges Active</span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 p-3 stat-card staff">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 bg-success bg-opacity-10 text-success rounded-3 me-3">
+                        <i class="bi bi-door-open fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-0">Room & Ward Allocation</h6>
+                        <h4 class="fw-bold mb-0">Rooms / Wards</h4>
+                    </div>
+                </div>
+                <p class="card-text text-muted small">
+                    Manage bed occupancy, floor allocation, and availability tracking (Modules 6 & 7).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 p-3 stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-3 me-3">
+                        <i class="bi bi-person-check fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-0">Inpatient Workflow</h6>
+                        <h4 class="fw-bold mb-0">Admissions</h4>
+                    </div>
+                </div>
+                <p class="card-text text-muted small">
+                    Patient check-in, check-out, and length of stay calculations (Module 8).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 p-3 stat-card pharmacy">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 bg-warning bg-opacity-10 text-warning rounded-3 me-3">
+                        <i class="bi bi-receipt-cutoff fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-0">Hospital Accounts</h6>
+                        <h4 class="fw-bold mb-0">Billing & Payments</h4>
+                    </div>
+                </div>
+                <p class="card-text text-muted small">
+                    Itemized billing, service costs, and payment tracking (Modules 11 & 12).
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

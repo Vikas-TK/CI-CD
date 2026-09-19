@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Dashboard - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col-md-8">
+        <h2 class="fw-bold mb-1"><i class="bi bi-person-badge text-info me-2"></i> Doctor Portal</h2>
+        <p class="text-muted mb-0">Welcome Dr. {{ current_user.full_name }}. View scheduled patient appointments and clinical workflows.</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <span class="badge bg-info text-dark fs-6 px-3 py-2 rounded-pill"><i class="bi bi-shield-check me-1"></i> Doctor Privileges Active</span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 p-3 stat-card doctor">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 bg-info bg-opacity-10 text-info rounded-3 me-3">
+                        <i class="bi bi-calendar2-check fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-0">Upcoming Consultations</h6>
+                        <h4 class="fw-bold mb-0">Appointments</h4>
+                    </div>
+                </div>
+                <p class="card-text text-muted small">
+                    Patient consultations, schedule tracking, and appointment management (Integrated in Module 4).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 p-3 stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-3 me-3">
+                        <i class="bi bi-journal-medical fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-0">Clinical Records</h6>
+                        <h4 class="fw-bold mb-0">Prescriptions</h4>
+                    </div>
+                </div>
+                <p class="card-text text-muted small">
+                    Issue digital prescriptions, medicine dosage, and patient instructions (Integrated in Module 9).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 p-3 stat-card staff">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 bg-success bg-opacity-10 text-success rounded-3 me-3">
+                        <i class="bi bi-hospital fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-0">Inpatient Care</h6>
+                        <h4 class="fw-bold mb-0">Admissions</h4>
+                    </div>
+                </div>
+                <p class="card-text text-muted small">
+                    Track admitted patients across wards and private recovery rooms (Integrated in Module 8).
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: hms_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secure_pass_123}
+      MYSQL_DATABASE: ${DB_NAME:-hospital_management_db}
+      MYSQL_USER: ${DB_USER:-hms_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-hms_secure_password_123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_secure_pass_123}"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+
+  web:
+    build: .
+    container_name: hms_web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: production
+      SECRET_KEY: ${SECRET_KEY:-change-this-in-production-to-a-secure-key}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-hospital_management_db}
+      DB_USER: ${DB_USER:-hms_user}
+      DB_PASSWORD: ${DB_PASSWORD:-hms_secure_password_123}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  mysql_data:

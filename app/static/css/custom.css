@@ -1,0 +1,121 @@
+/* MediCare HMS Custom Healthcare Theme */
+:root {
+    --bs-primary: #0d3b66;
+    --bs-primary-rgb: 13, 59, 102;
+    --bs-secondary: #64748b;
+    --bs-info: #0ea5e9;
+    --bs-success: #10b981;
+    --bs-warning: #f59e0b;
+    --bs-danger: #ef4444;
+    --hms-bg: #f8fafc;
+    --hms-card-bg: #ffffff;
+    --hms-border-radius: 12px;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--hms-bg);
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+}
+
+.bg-primary {
+    background-color: #0d3b66 !important;
+}
+
+.btn-primary {
+    background-color: #0d3b66;
+    border-color: #0d3b66;
+}
+
+.btn-primary:hover {
+    background-color: #092540;
+    border-color: #092540;
+}
+
+.card {
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: var(--hms-border-radius);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+.auth-card {
+    max-width: 520px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.hero-banner {
+    background: linear-gradient(135deg, #0d3b66 0%, #1e40af 50%, #0284c7 100%);
+    color: #ffffff;
+    border-radius: 20px;
+    padding: 3.5rem 2rem;
+    box-shadow: 0 20px 25px -5px rgba(13, 59, 102, 0.2);
+}
+
+.stat-card {
+    border-left: 4px solid var(--bs-primary);
+}
+
+.stat-card.doctor {
+    border-left-color: #0ea5e9;
+}
+
+.stat-card.staff {
+    border-left-color: #10b981;
+}
+
+.stat-card.patient {
+    border-left-color: #8b5cf6;
+}
+
+.stat-card.pharmacy {
+    border-left-color: #f59e0b;
+}
+
+.role-badge {
+    font-size: 0.8rem;
+    padding: 0.35em 0.65em;
+    font-weight: 600;
+}
+
+.table th {
+    background-color: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label {
+    color: #0d3b66;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 0.25rem rgba(14, 165, 233, 0.2);
+}
+
+/* Status Badges */
+.badge-active {
+    background-color: #dcfce7;
+    color: #15803d;
+}
+
+.badge-inactive {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
