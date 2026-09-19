@@ -28,17 +28,18 @@ class DevelopmentConfig(BaseConfig):
     DEBUG = True
     TESTING = False
     
-    db_user = os.environ.get("DB_USER", "hms_user")
-    db_pass = os.environ.get("DB_PASSWORD", "hms_password")
+    db_user = os.environ.get("DB_USER")
+    db_pass = os.environ.get("DB_PASSWORD")
     db_host = os.environ.get("DB_HOST", "localhost")
     db_port = os.environ.get("DB_PORT", "3306")
     db_name = os.environ.get("DB_NAME", "hospital_management_db")
     
-    # Check if a direct DATABASE_URL is provided, else assemble MySQL URL or fallback to SQLite for local ease
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",
-        f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
-    )
+    if os.environ.get("DATABASE_URL"):
+        SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+    elif db_user and db_pass:
+        SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+    else:
+        SQLALCHEMY_DATABASE_URI = "sqlite:///hms_dev.db"
 
 
 class TestingConfig(BaseConfig):
