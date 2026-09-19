@@ -1,7 +1,3 @@
-import pytest
-from app.models.user import Role
-
-
 def test_role_redirection_on_login(client, admin_user, doctor_user, staff_user, patient_user, pharmacy_user):
     """Test that each role is correctly redirected to their designated dashboard after login."""
     roles_and_dashboards = [

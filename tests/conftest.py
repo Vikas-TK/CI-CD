@@ -1,6 +1,6 @@
 import pytest
 from app import create_app, db
-from app.models.user import User, Role
+from app.models.user import Role
 from app.services.user_service import UserService
 
 

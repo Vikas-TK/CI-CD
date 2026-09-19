@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import abort, flash, redirect, url_for, request, jsonify, render_template
+from flask import flash, redirect, url_for, request, jsonify, render_template
 from flask_login import current_user
 from app.models.user import Role
 
@@ -7,7 +7,7 @@ from app.models.user import Role
 def role_required(*allowed_roles):
     """
     Decorator to enforce Role-Based Access Control on Flask routes.
-    
+
     Usage:
         @role_required(Role.ADMINISTRATOR)
         @role_required(Role.DOCTOR, Role.STAFF)

@@ -9,10 +9,9 @@ class UserService:
     """Service class encapsulating authentication, user management, and authorization business logic."""
 
     @staticmethod
-    def validate_user_input(first_name, last_name, email, phone_number, password=None, confirm_password=None):
-        """Validates user attributes and returns a list of error messages (empty if valid)."""
+    def validate_name(first_name, last_name):
+        """Validates first and last name fields."""
         errors = []
-
         if not first_name or not first_name.strip():
             errors.append("First name is required.")
         elif len(first_name.strip()) < 2 or len(first_name.strip()) > 50:
@@ -22,31 +21,46 @@ class UserService:
             errors.append("Last name is required.")
         elif len(last_name.strip()) < 2 or len(last_name.strip()) > 50:
             errors.append("Last name must be between 2 and 50 characters.")
+        return errors
 
+    @staticmethod
+    def validate_contact(email, phone_number):
+        """Validates email format and phone number structure."""
+        errors = []
         if not email or not email.strip():
             errors.append("Email address is required.")
         else:
             try:
-                # Validate and normalize email, allowing test and intranet domains
-                valid_info = validate_email(email.strip(), check_deliverability=False, test_environment=True)
-                email = valid_info.normalized
+                validate_email(email.strip(), check_deliverability=False, test_environment=True)
             except EmailNotValidError as e:
                 errors.append(f"Invalid email address: {str(e)}")
 
         if not phone_number or not phone_number.strip():
             errors.append("Phone number is required.")
         else:
-            # Validate international or local phone format: 7 to 15 digits, optional leading +
             phone_pattern = re.compile(r"^\+?[0-9\s\-()]{7,20}$")
             if not phone_pattern.match(phone_number.strip()):
                 errors.append("Invalid phone number format. Provide 7 to 15 digits.")
+        return errors
 
+    @staticmethod
+    def validate_password_match(password, confirm_password):
+        """Validates password length and match."""
+        errors = []
         if password is not None:
             if len(password) < 6:
                 errors.append("Password must be at least 6 characters long.")
             if confirm_password is not None and password != confirm_password:
                 errors.append("Passwords do not match.")
+        return errors
 
+    @classmethod
+    def validate_user_input(cls, first_name, last_name, email, phone_number, password=None, confirm_password=None):
+        """Validates user attributes and returns a list of error messages (empty if valid)."""
+        errors = []
+        errors.extend(cls.validate_name(first_name, last_name))
+        errors.extend(cls.validate_contact(email, phone_number))
+        errors.extend(cls.validate_password_match(password, confirm_password))
         return errors
 
     @classmethod
