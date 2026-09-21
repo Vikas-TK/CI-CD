@@ -13,46 +13,81 @@
     </div>
 </div>
 
+<!-- Profile Status Alert -->
+{% if not patient %}
+    <div class="alert alert-warning shadow-sm d-flex flex-column flex-md-row justify-content-between align-items-md-center p-3 mb-4 rounded-3 border-warning">
+        <div class="d-flex align-items-center mb-2 mb-md-0">
+            <i class="bi bi-exclamation-triangle-fill fs-3 text-warning me-3"></i>
+            <div>
+                <h6 class="fw-bold mb-0">Patient Profile Incomplete</h6>
+                <p class="small mb-0 text-muted">Please complete your clinical and demographic profile so doctors and staff can assist you.</p>
+            </div>
+        </div>
+        <a href="{{ url_for('patient.complete_profile') }}" class="btn btn-warning fw-bold shadow-sm text-dark text-nowrap">
+            <i class="bi bi-person-plus me-1"></i> Complete Profile Now
+        </a>
+    </div>
+{% endif %}
+
 <div class="row g-4 mb-4">
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-3">
         <div class="card h-100 p-3 stat-card">
             <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
                     <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-3 me-3">
-                        <i class="bi bi-calendar-plus fs-3"></i>
+                        <i class="bi bi-person-vcard fs-3"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted mb-0">Doctor Visits</h6>
-                        <h4 class="fw-bold mb-0">Book Appointment</h4>
+                        <h6 class="text-muted mb-0">Profile Status</h6>
+                        <h5 class="fw-bold mb-0">{% if patient %}<span class="text-success">Active</span>{% else %}<span class="text-warning">Incomplete</span>{% endif %}</h5>
                     </div>
                 </div>
-                <p class="card-text text-muted small">
-                    Schedule consultations with hospital specialists and track appointment confirmations (Module 4).
-                </p>
+                <div class="d-grid mt-2">
+                    {% if patient %}
+                        <a href="{{ url_for('patient.view_profile') }}" class="btn btn-sm btn-outline-primary fw-semibold">View Profile</a>
+                    {% else %}
+                        <a href="{{ url_for('patient.complete_profile') }}" class="btn btn-sm btn-warning fw-semibold">Create Profile</a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-3">
         <div class="card h-100 p-3 stat-card doctor">
             <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
                     <div class="p-3 bg-info bg-opacity-10 text-info rounded-3 me-3">
-                        <i class="bi bi-file-earmark-medical fs-3"></i>
+                        <i class="bi bi-calendar-plus fs-3"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted mb-0">Doctor Orders</h6>
-                        <h4 class="fw-bold mb-0">Prescriptions</h4>
+                        <h6 class="text-muted mb-0">Appointments</h6>
+                        <h5 class="fw-bold mb-0">Consultations</h5>
                     </div>
                 </div>
-                <p class="card-text text-muted small">
-                    Access digital prescriptions and dosage instructions given by attending physicians (Module 9).
-                </p>
+                <p class="card-text text-muted small">Schedule visits with doctors (Module 4).</p>
             </div>
         </div>
     </div>
 
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100 p-3 stat-card staff">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 bg-success bg-opacity-10 text-success rounded-3 me-3">
+                        <i class="bi bi-file-earmark-medical fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-0">Prescriptions</h6>
+                        <h5 class="fw-bold mb-0">Medications</h5>
+                    </div>
+                </div>
+                <p class="card-text text-muted small">Access digital prescriptions (Module 9).</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
         <div class="card h-100 p-3 stat-card pharmacy">
             <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
@@ -61,35 +96,49 @@
                     </div>
                     <div>
                         <h6 class="text-muted mb-0">Financials</h6>
-                        <h4 class="fw-bold mb-0">Bills & Invoices</h4>
+                        <h5 class="fw-bold mb-0">Billing</h5>
                     </div>
                 </div>
-                <p class="card-text text-muted small">
-                    Review itemized hospital service charges and payment status (Modules 11 & 12).
-                </p>
+                <p class="card-text text-muted small">Review itemized service bills (Module 11).</p>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Profile Summary -->
 <div class="row">
     <div class="col-12">
         <div class="card shadow-sm p-4">
-            <h5 class="fw-bold mb-3"><i class="bi bi-person-lines-fill me-2 text-primary"></i> Patient Profile Summary</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-person-lines-fill me-2 text-primary"></i> Patient Profile Summary</h5>
+                {% if patient %}
+                    <a href="{{ url_for('patient.edit_profile') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil me-1"></i> Edit</a>
+                {% endif %}
+            </div>
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="text-muted small d-block">Full Name</label>
-                    <span class="fw-semibold">{{ current_user.full_name }}</span>
+                    <span class="fw-semibold text-dark">{{ current_user.full_name }}</span>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="text-muted small d-block">Email Address</label>
-                    <span class="fw-semibold">{{ current_user.email }}</span>
+                    <span class="fw-semibold text-dark">{{ current_user.email }}</span>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="text-muted small d-block">Phone Number</label>
-                    <span class="fw-semibold">{{ current_user.phone_number }}</span>
+                    <span class="fw-semibold text-dark">{{ current_user.phone_number }}</span>
+                </div>
+                <div class="col-md-3">
+                    <label class="text-muted small d-block">Blood Group</label>
+                    <span class="fw-semibold text-dark">{{ patient.blood_group if patient and patient.blood_group else 'Not Specified' }}</span>
                 </div>
             </div>
+            {% if patient and patient.disease_or_complaint %}
+                <div class="mt-3 pt-3 border-top">
+                    <label class="text-muted small d-block">Primary Complaint / Symptoms</label>
+                    <p class="mb-0 text-dark">{{ patient.disease_or_complaint }}</p>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

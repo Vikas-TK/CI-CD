@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Patient - {{ patient.full_name }} - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-primary text-white p-4">
+                <div class="d-flex align-items-center">
+                    <div class="p-3 bg-info bg-opacity-20 text-white rounded-circle me-3">
+                        <i class="bi bi-pencil-square fs-3"></i>
+                    </div>
+                    <div>
+                        <h3 class="fw-bold mb-1">Edit Patient Record: {{ patient.full_name }}</h3>
+                        <p class="small text-light opacity-75 mb-0">Administrator modifications for Patient ID #{{ patient.patient_id }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                <form method="POST" action="{{ url_for('admin.patient_update', patient_id=patient.patient_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                    <!-- Account Information -->
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-person me-2"></i> Account Identity (Read-only)</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Full Name</label>
+                            <input type="text" class="form-control bg-light" value="{{ patient.full_name }}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Email Address</label>
+                            <input type="email" class="form-control bg-light" value="{{ patient.email }}" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="phone_number" class="form-label fw-semibold">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                                   value="{{ form_data.phone_number if form_data and form_data.phone_number else patient.phone_number }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="aadhaar_number" class="form-label fw-semibold">Aadhaar Number (12 Digits)</label>
+                            <input type="text" class="form-control" id="aadhaar_number" name="aadhaar_number" 
+                                   value="{{ form_data.aadhaar_number if form_data and form_data.aadhaar_number else (patient.aadhaar_number or '') }}" 
+                                   placeholder="Leave unchanged or enter 12 digits" maxlength="14">
+                        </div>
+                    </div>
+
+                    <hr class="text-muted opacity-25">
+
+                    <!-- Clinical & Demographic Data -->
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-heart-pulse me-2"></i> Demographic & Clinical Data</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="age" class="form-label fw-semibold">Age (Years)</label>
+                            <input type="number" class="form-control" id="age" name="age" min="0" max="130" 
+                                   value="{{ form_data.age if form_data and form_data.age else (patient.age if patient.age is not none else '') }}" placeholder="e.g. 35">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="gender" class="form-label fw-semibold">Gender</label>
+                            <select class="form-select" id="gender" name="gender">
+                                <option value="">Select Gender</option>
+                                {% for g in genders %}
+                                    <option value="{{ g }}" {% if (form_data and form_data.gender == g) or (patient.gender == g) %}selected{% endif %}>{{ g }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="blood_group" class="form-label fw-semibold">Blood Group</label>
+                            <select class="form-select" id="blood_group" name="blood_group">
+                                <option value="">Select Blood Group</option>
+                                {% for bg in blood_groups %}
+                                    <option value="{{ bg }}" {% if (form_data and form_data.blood_group == bg) or (patient.blood_group == bg) %}selected{% endif %}>{{ bg }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="disease_or_complaint" class="form-label fw-semibold">Health Complaint / Clinical Notes</label>
+                        <textarea class="form-control" id="disease_or_complaint" name="disease_or_complaint" rows="3">{{ form_data.disease_or_complaint if form_data and form_data.disease_or_complaint else (patient.disease_or_complaint or '') }}</textarea>
+                    </div>
+
+                    <hr class="text-muted opacity-25">
+
+                    <!-- Emergency Contact & Address -->
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-shield-check me-2"></i> Emergency Contact & Residence</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="emergency_contact_name" class="form-label fw-semibold">Emergency Contact Person</label>
+                            <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name" 
+                                   value="{{ form_data.emergency_contact_name if form_data and form_data.emergency_contact_name else (patient.emergency_contact_name or '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="emergency_contact_phone" class="form-label fw-semibold">Emergency Contact Phone</label>
+                            <input type="tel" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone" 
+                                   value="{{ form_data.emergency_contact_phone if form_data and form_data.emergency_contact_phone else (patient.emergency_contact_phone or '') }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="address" class="form-label fw-semibold">Residential Address</label>
+                        <input type="text" class="form-control" id="address" name="address" 
+                               value="{{ form_data.address if form_data and form_data.address else (patient.address or '') }}">
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('admin.patient_details', patient_id=patient.patient_id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary fw-bold shadow-sm px-4">
+                            <i class="bi bi-check2-circle me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

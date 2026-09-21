@@ -20,9 +20,11 @@ The **Hospital Management System (MediCare HMS)** is a web-based enterprise appl
 
 ---
 
+---
+
 ## 2. Module 1: User Authentication & Role Management
 
-Module 1 establishes the authentication backbone and authorization infrastructure for all subsequent hospital modules (Modules 2–12).
+Module 1 establishes the authentication backbone and authorization infrastructure for all subsequent hospital modules.
 
 ### Key Responsibilities:
 1. **Patient Self-Registration**: Public portal registration strictly assigns the `PATIENT` role. Form input validation checks email format, international phone syntax, and enforces password matching.
@@ -43,7 +45,28 @@ Module 1 establishes the authentication backbone and authorization infrastructur
 
 ---
 
-## 3. Technology Stack
+## 3. Module 2: Patient Management
+
+Module 2 implements comprehensive patient demographic and health profile management linked 1-to-1 with user accounts.
+
+### Key Responsibilities:
+1. **1-to-1 User Profile Association**: Each patient profile links uniquely to a `PATIENT` user (`users.user_id`), preventing duplicate profiles. Core identification data (name, email, phone) stays normalized in the `users` table.
+2. **Self-Service Profile Lifecycle**:
+   - First-time profile creation prompts on `/patient/dashboard` or `/patient/profile/complete`.
+   - Patients can view their full profile (`/patient/profile`) and update allowed demographic fields (`/patient/profile/edit`).
+   - Server-side immutability: patients cannot overwrite their `user_id` or tamper with core identifiers via patient profile endpoints.
+3. **Privacy & Aadhaar Masking**:
+   - Aadhaar numbers (12 digits) are masked in standard format `XXXX-XXXX-1234` across directory lists, doctor views, staff views, and admin views.
+   - Unmasked full Aadhaar is only visible when an authorized patient or admin accesses their dedicated edit form.
+4. **Role-Based Patient Directory Access**:
+   - **Administrators** (`/admin/patients`): Full patient directory with search (by Name, Email, Phone, or Patient ID), detailed view (`/admin/patients/<id>`), and full profile editing (`/admin/patients/<id>/edit`).
+   - **Doctors** (`/doctor/patients`): Read-only directory and read-only patient profile view for clinical consultations.
+   - **Hospital Staff** (`/staff/patients`): Read-only directory and patient profile view for intake verification and assistance.
+   - **Patients**: Strictly restricted to viewing and editing their own patient record.
+
+---
+
+## 4. Technology Stack
 
 - **Backend**: Python 3.10+, Flask 3.x, Flask-SQLAlchemy, Flask-Migrate, Flask-Login, Flask-WTF, Werkzeug.
 - **Frontend**: HTML5, CSS3, JavaScript (Fetch API), Bootstrap 5.3, Bootstrap Icons, Google Fonts (Inter).
@@ -53,80 +76,10 @@ Module 1 establishes the authentication backbone and authorization infrastructur
 
 ---
 
-## 4. Architecture & Directory Structure
+## 5. Database Design
 
-The project implements a Modular MVC / Application Factory pattern:
-
-```
-CI_CD/
-├── .github/
-│   └── workflows/
-│       ├── ci.yml                 # GitHub Actions CI: Flake8, pytest, JUnit XML, SonarCloud
-│       └── cd-staging.yml         # GitHub Actions CD: Docker build & staging health check
-├── app/
-│   ├── __init__.py                # App factory (create_app), extensions setup, error handlers
-│   ├── config.py                  # Dev, Test, Staging, and Prod configuration classes
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── user.py                # User model & Role constants
-│   ├── controllers/               # Route Blueprints
-│   │   ├── __init__.py
-│   │   ├── main.py                # Landing page & /health endpoint
-│   │   ├── auth.py                # Register, Login, Logout
-│   │   ├── admin.py               # Admin Dashboard, User Management, Privileged Creation
-│   │   ├── doctor.py              # Doctor Dashboard
-│   │   ├── staff.py               # Staff Dashboard
-│   │   ├── patient.py             # Patient Dashboard
-│   │   └── pharmacy.py            # Pharmacy Manager Dashboard
-│   ├── services/
-│   │   ├── __init__.py
-│   │   └── user_service.py        # Business logic for auth, validations, user queries
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   └── decorators.py          # @role_required, @admin_required, etc.
-│   ├── templates/                 # Jinja2 HTML Templates
-│   │   ├── base.html              # Base layout with navbar, alerts, footer
-│   │   ├── index.html             # Landing page
-│   │   ├── 403.html               # Access Forbidden page
-│   │   ├── 404.html               # Page Not Found
-│   │   ├── 500.html               # Internal Server Error
-│   │   ├── auth/
-│   │   │   ├── login.html
-│   │   │   └── register.html
-│   │   ├── admin/
-│   │   │   ├── dashboard.html
-│   │   │   └── users.html
-│   │   ├── doctor/dashboard.html
-│   │   ├── staff/dashboard.html
-│   │   ├── patient/dashboard.html
-│   │   └── pharmacy/dashboard.html
-│   └── static/
-│       ├── css/
-│       │   └── custom.css         # Healthcare theme styling
-│       └── js/
-│           ├── auth.js            # Validation & dynamic password match
-│           └── admin_users.js     # User management confirmation & interaction
-├── tests/
-│   ├── conftest.py                # Pytest fixtures (app, client, seeded roles)
-│   ├── test_auth.py               # Tests for registration, login, logout, validation
-│   ├── test_rbac.py               # Tests for role redirection & access control
-│   └── test_admin.py              # Tests for admin user management & CLI commands
-├── Dockerfile                     # Multi-stage production container
-├── docker-compose.yml             # Local multi-container Flask + MySQL stack
-├── .env.example                   # Environment configuration template
-├── .gitignore                     # Git ignore rules
-├── requirements.txt               # Dependencies
-├── pytest.ini                     # Pytest configuration
-├── sonar-project.properties       # SonarCloud configuration
-├── run.py                         # Application entrypoint & CLI commands
-└── README.md
-```
-
----
-
-## 5. Database Design: `users` Table
-
-Authentication credentials and account statuses are encapsulated in the `users` table, isolated from domain profile tables:
+### 5.1 `users` Table
+Authentication credentials and account statuses are encapsulated in the `users` table:
 
 | Column Name | Data Type | Constraints | Description |
 |---|---|---|---|
@@ -140,6 +93,24 @@ Authentication credentials and account statuses are encapsulated in the `users` 
 | `is_active` | `BOOLEAN` | `NOT NULL, DEFAULT TRUE` | Active account status flag |
 | `created_at` | `DATETIME` | `NOT NULL` | Account creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
+
+### 5.2 `patients` Table
+Clinical demographics and medical intake data are encapsulated in the `patients` table:
+
+| Column Name | Data Type | Constraints | Description |
+|---|---|---|---|
+| `patient_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique patient profile ID |
+| `user_id` | `INTEGER` | `NOT NULL, UNIQUE, FOREIGN KEY (users.user_id) ON DELETE CASCADE` | 1-to-1 link to user account |
+| `age` | `INTEGER` | `NULLABLE` | Patient age (0–130) |
+| `gender` | `VARCHAR(20)` | `NULLABLE` | Gender identity |
+| `aadhaar_number` | `VARCHAR(20)` | `NULLABLE` | 12-digit Indian national identity number |
+| `blood_group` | `VARCHAR(10)` | `NULLABLE` | Blood group (`A+`, `A-`, `B+`, `B-`, `AB+`, `AB-`, `O+`, `O-`) |
+| `disease_or_complaint` | `TEXT` | `NULLABLE` | Medical complaint / primary diagnosis notes |
+| `emergency_contact_name` | `VARCHAR(100)` | `NULLABLE` | Primary emergency contact name |
+| `emergency_contact_phone`| `VARCHAR(20)` | `NULLABLE` | Emergency contact phone number |
+| `address` | `VARCHAR(255)` | `NULLABLE` | Residential address |
+| `created_at` | `DATETIME` | `NOT NULL` | Record creation timestamp (UTC) |
+| `updated_at` | `DATETIME` | `NOT NULL` | Record last updated timestamp (UTC) |
 
 ---
 
@@ -339,16 +310,18 @@ docker compose down
 
 ---
 
-## 12. Future Modules Roadmap
+## 12. Modules Roadmap & Progress
 
-- **Module 2**: Patient Management (Profiles & Demographics)
-- **Module 3**: Doctor Management (Specializations & Schedules)
-- **Module 4**: Patient–Doctor Appointments
-- **Module 5**: Staff Management
-- **Module 6**: Room Management
-- **Module 7**: Ward Management
-- **Module 8**: Patient Admissions & Stay Tracking
-- **Module 9**: Digital Prescriptions
-- **Module 10**: Pharmacy Inventory & Dispensing
-- **Module 11**: Cost & Itemized Billing
-- **Module 12**: Payment Records & Receipts
+- [x] **Module 1**: User Authentication & Role Management (Completed)
+- [x] **Module 2**: Patient Management – Profiles & Demographics (Completed)
+- [ ] **Module 3**: Doctor Management (Specializations & Schedules)
+- [ ] **Module 4**: Patient–Doctor Appointments
+- [ ] **Module 5**: Staff Management
+- [ ] **Module 6**: Room Management
+- [ ] **Module 7**: Ward Management
+- [ ] **Module 8**: Patient Admissions & Stay Tracking
+- [ ] **Module 9**: Digital Prescriptions
+- [ ] **Module 10**: Pharmacy Inventory & Dispensing
+- [ ] **Module 11**: Cost & Itemized Billing
+- [ ] **Module 12**: Payment Records & Receipts
+

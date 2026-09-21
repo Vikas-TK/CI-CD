@@ -2,7 +2,9 @@ import os
 import click
 from app import db
 from app.models.user import User, Role
+from app.models.patient import Patient
 from app.services.user_service import UserService
+from app.services.patient_service import PatientService
 
 
 def register_cli_commands(app):
@@ -51,7 +53,7 @@ def register_cli_commands(app):
 
     @app.cli.command("seed-data")
     def seed_data():
-        """Seeds sample users across all 5 roles for development and evaluation."""
+        """Seeds sample users and patient profile for development and evaluation."""
         db.create_all()
 
         demo_users = [
@@ -77,4 +79,19 @@ def register_cli_commands(app):
                 if user:
                     created_count += 1
 
-        click.echo(click.style(f"Seeded {created_count} demo user accounts successfully.", fg="green"))
+        # Seed sample patient profile for Alice Brown
+        alice_user = User.query.filter_by(email="patient.alice@example.com").first()
+        if alice_user and not Patient.query.filter_by(user_id=alice_user.user_id).first():
+            PatientService.create_patient_profile(
+                user_id=alice_user.user_id,
+                age=29,
+                gender="Female",
+                aadhaar_number="123456789012",
+                blood_group="O+",
+                disease_or_complaint="Seasonal allergies and mild respiratory congestion.",
+                emergency_contact_name="Robert Brown",
+                emergency_contact_phone="+1000000099",
+                address="124 Park Avenue, Metro City"
+            )
+
+        click.echo(click.style(f"Seeded {created_count} demo user accounts and patient profile.", fg="green"))
