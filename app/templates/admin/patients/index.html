@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Directory - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-person-lines-fill text-primary me-2"></i> Patient Directory</h2>
+        <p class="text-muted mb-0">Search, view, and manage registered patient medical profiles</p>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-3">
+        <form method="GET" action="{% if current_user.is_admin %}{{ url_for('admin.patients_list') }}{% elif current_user.is_doctor %}{{ url_for('doctor.patients_list') }}{% else %}{{ url_for('staff.patients_list') }}{% endif %}" class="row g-2 align-items-center">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" name="search" placeholder="Search by Patient ID, Name, Email, Phone, or Complaint..." value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100 fw-semibold">Search</button>
+                <a href="{% if current_user.is_admin %}{{ url_for('admin.patients_list') }}{% elif current_user.is_doctor %}{{ url_for('doctor.patients_list') }}{% else %}{{ url_for('staff.patients_list') }}{% endif %}" class="btn btn-outline-secondary" title="Reset Search"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Patient Table -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Patient ID</th>
+                        <th>Patient Name</th>
+                        <th>Contact</th>
+                        <th>Age / Gender</th>
+                        <th>Blood Group</th>
+                        <th>Aadhaar</th>
+                        <th>Primary Complaint</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in patients %}
+                        <tr>
+                            <td class="text-muted fw-bold">#{{ p.patient_id }}</td>
+                            <td>
+                                <div class="fw-bold text-dark">{{ p.full_name }}</div>
+                                <div class="small text-muted">{{ p.email }}</div>
+                            </td>
+                            <td>
+                                <div><i class="bi bi-telephone text-muted me-1"></i>{{ p.phone_number }}</div>
+                            </td>
+                            <td>
+                                <div>{{ p.age if p.age is not none else '-' }} yrs</div>
+                                <div class="small text-muted">{{ p.gender or 'Unspecified' }}</div>
+                            </td>
+                            <td>
+                                {% if p.blood_group %}
+                                    <span class="badge bg-danger text-white">{{ p.blood_group }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="font-monospace small text-muted">{{ p.masked_aadhaar }}</span>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 180px;" title="{{ p.disease_or_complaint or 'None' }}">
+                                    {{ p.disease_or_complaint or '<span class="text-muted">None</span>' | safe }}
+                                </div>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-inline-flex gap-1">
+                                    <a href="{% if current_user.is_admin %}{{ url_for('admin.patient_details', patient_id=p.patient_id) }}{% elif current_user.is_doctor %}{{ url_for('doctor.patient_details', patient_id=p.patient_id) }}{% else %}{{ url_for('staff.patient_details', patient_id=p.patient_id) }}{% endif %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                    {% if current_user.is_admin %}
+                                        <a href="{{ url_for('admin.patient_edit', patient_id=p.patient_id) }}" class="btn btn-sm btn-outline-secondary" title="Edit Profile">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-person-x display-6 d-block mb-2 text-secondary"></i>
+                                No patient records found matching your query.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if pagination and pagination.pages > 1 %}
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
+            <span class="small text-muted">Showing page {{ pagination.page }} of {{ pagination.pages }}</span>
+            <nav aria-label="Patient table navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for(request.endpoint, page=pagination.prev_num, search=search_query) }}">Previous</a>
+                    </li>
+                    {% for pg in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if pg %}
+                            <li class="page-item {% if pg == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for(request.endpoint, page=pg, search=search_query) }}">{{ pg }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for(request.endpoint, page=pagination.next_num, search=search_query) }}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

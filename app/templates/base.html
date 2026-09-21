@@ -53,10 +53,20 @@
                                     <i class="bi bi-people me-1"></i> User Management
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('admin.patient') %}active{% endif %}" href="{{ url_for('admin.patients_list') }}">
+                                    <i class="bi bi-person-lines-fill me-1"></i> Patients
+                                </a>
+                            </li>
                         {% elif current_user.is_doctor %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'doctor.dashboard' %}active{% endif %}" href="{{ url_for('doctor.dashboard') }}">
                                     <i class="bi bi-person-badge me-1"></i> Doctor Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('doctor.patient') %}active{% endif %}" href="{{ url_for('doctor.patients_list') }}">
+                                    <i class="bi bi-person-lines-fill me-1"></i> Patient Directory
                                 </a>
                             </li>
                         {% elif current_user.is_staff %}
@@ -65,10 +75,20 @@
                                     <i class="bi bi-briefcase me-1"></i> Staff Dashboard
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('staff.patient') %}active{% endif %}" href="{{ url_for('staff.patients_list') }}">
+                                    <i class="bi bi-person-lines-fill me-1"></i> Patient Registry
+                                </a>
+                            </li>
                         {% elif current_user.is_patient %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'patient.dashboard' %}active{% endif %}" href="{{ url_for('patient.dashboard') }}">
                                     <i class="bi bi-heart-pulse me-1"></i> Patient Portal
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('patient.view') or request.endpoint.startswith('patient.edit') %}active{% endif %}" href="{{ url_for('patient.view_profile') }}">
+                                    <i class="bi bi-person-vcard me-1"></i> My Profile
                                 </a>
                             </li>
                         {% elif current_user.is_pharmacy_manager %}

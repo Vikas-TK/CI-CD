@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import current_user
 from app.models.user import User, Role
+from app.models.patient import Patient
 from app.services.user_service import UserService
+from app.services.patient_service import PatientService
 from app.utils.decorators import admin_required
 
 admin_bp = Blueprint("admin", __name__)
@@ -17,6 +19,7 @@ def dashboard():
     total_staff = User.query.filter_by(role=Role.STAFF, is_active=True).count()
     total_patients = User.query.filter_by(role=Role.PATIENT, is_active=True).count()
     total_pharmacy = User.query.filter_by(role=Role.PHARMACY_MANAGER, is_active=True).count()
+    total_patient_profiles = Patient.query.count()
 
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
 
@@ -28,6 +31,7 @@ def dashboard():
         total_staff=total_staff,
         total_patients=total_patients,
         total_pharmacy=total_pharmacy,
+        total_patient_profiles=total_patient_profiles,
         recent_users=recent_users
     )
 
@@ -125,3 +129,103 @@ def change_role(user_id):
 
     flash(message, "success" if success else "danger")
     return redirect(url_for("admin.users_list"))
+
+
+# ==============================================================================
+# MODULE 2: ADMINISTRATOR PATIENT MANAGEMENT
+# ==============================================================================
+
+@admin_bp.route("/patients", methods=["GET"])
+@admin_required
+def patients_list():
+    """Administrator Patient Directory with search and pagination."""
+    search_query = request.args.get("search", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    query = PatientService.list_patients(search_query=search_query)
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
+    patients = pagination.items
+
+    return render_template(
+        "admin/patients/index.html",
+        patients=patients,
+        pagination=pagination,
+        search_query=search_query
+    )
+
+
+@admin_bp.route("/patients/<int:patient_id>", methods=["GET"])
+@admin_required
+def patient_details(patient_id):
+    """Administrator detailed patient profile view."""
+    patient = PatientService.get_patient_by_id(patient_id)
+    if not patient:
+        flash("Patient record not found.", "danger")
+        return redirect(url_for("admin.patients_list"))
+
+    return render_template("admin/patients/view.html", patient=patient)
+
+
+@admin_bp.route("/patients/<int:patient_id>/edit", methods=["GET"])
+@admin_required
+def patient_edit(patient_id):
+    """Administrator edit patient profile form."""
+    patient = PatientService.get_patient_by_id(patient_id)
+    if not patient:
+        flash("Patient record not found.", "danger")
+        return redirect(url_for("admin.patients_list"))
+
+    return render_template(
+        "admin/patients/edit.html",
+        patient=patient,
+        blood_groups=PatientService.VALID_BLOOD_GROUPS,
+        genders=PatientService.VALID_GENDERS
+    )
+
+
+@admin_bp.route("/patients/<int:patient_id>/update", methods=["POST"])
+@admin_required
+def patient_update(patient_id):
+    """Administrator update patient profile handler."""
+    patient = PatientService.get_patient_by_id(patient_id)
+    if not patient:
+        flash("Patient record not found.", "danger")
+        return redirect(url_for("admin.patients_list"))
+
+    age = request.form.get("age", "")
+    gender = request.form.get("gender", "")
+    aadhaar_number = request.form.get("aadhaar_number", "")
+    blood_group = request.form.get("blood_group", "")
+    disease_or_complaint = request.form.get("disease_or_complaint", "")
+    emergency_contact_name = request.form.get("emergency_contact_name", "")
+    emergency_contact_phone = request.form.get("emergency_contact_phone", "")
+    address = request.form.get("address", "")
+    phone_number = request.form.get("phone_number", "")
+
+    updated_patient, errors = PatientService.update_patient_profile(
+        patient_id=patient.patient_id,
+        updating_user=current_user,
+        age=age,
+        gender=gender,
+        aadhaar_number=aadhaar_number,
+        blood_group=blood_group,
+        disease_or_complaint=disease_or_complaint,
+        emergency_contact_name=emergency_contact_name,
+        emergency_contact_phone=emergency_contact_phone,
+        address=address,
+        phone_number=phone_number
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+        return render_template(
+            "admin/patients/edit.html",
+            patient=patient,
+            form_data=request.form,
+            blood_groups=PatientService.VALID_BLOOD_GROUPS,
+            genders=PatientService.VALID_GENDERS
+        ), 400
+
+    flash(f"Patient profile for {updated_patient.full_name} updated successfully.", "success")
+    return redirect(url_for("admin.patient_details", patient_id=patient.patient_id))

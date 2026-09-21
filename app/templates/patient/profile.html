@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}My Patient Profile - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1"><i class="bi bi-person-badge text-primary me-2"></i> Patient Healthcare Profile</h2>
+                <p class="text-muted mb-0">Your confidential personal and clinical information</p>
+            </div>
+            <div class="mt-3 mt-md-0">
+                <a href="{{ url_for('patient.edit_profile') }}" class="btn btn-primary fw-semibold shadow-sm">
+                    <i class="bi bi-pencil-square me-1"></i> Edit Profile
+                </a>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">
+                    <i class="bi bi-person-lines-fill me-2"></i> {{ patient.full_name }}
+                </h5>
+                <span class="badge bg-info text-dark fw-bold">Patient ID: #{{ patient.patient_id }}</span>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4 mb-4">
+                    <div class="col-md-4">
+                        <label class="text-muted small d-block">Full Name</label>
+                        <span class="fw-bold fs-6 text-dark">{{ patient.full_name }}</span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small d-block">Email Address</label>
+                        <span class="fw-semibold text-dark">{{ patient.email }}</span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small d-block">Phone Number</label>
+                        <span class="fw-semibold text-dark">{{ patient.phone_number }}</span>
+                    </div>
+                </div>
+
+                <hr class="text-muted opacity-25">
+
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-heart-pulse me-2"></i> Medical & Demographic Details</h6>
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <label class="text-muted small d-block">Age</label>
+                        <span class="fw-semibold text-dark">{{ patient.age if patient.age is not none else 'Not Provided' }}</span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted small d-block">Gender</label>
+                        <span class="fw-semibold text-dark">{{ patient.gender or 'Not Specified' }}</span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted small d-block">Blood Group</label>
+                        {% if patient.blood_group %}
+                            <span class="badge bg-danger text-white px-2 py-1">{{ patient.blood_group }}</span>
+                        {% else %}
+                            <span class="text-muted">Not Specified</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted small d-block">Aadhaar (Masked)</label>
+                        <span class="font-monospace fw-semibold text-dark">{{ patient.masked_aadhaar }}</span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="text-muted small d-block">Primary Health Complaint / Medical History</label>
+                    <div class="p-3 bg-light rounded-3 border">
+                        {{ patient.disease_or_complaint or 'No specific health complaints recorded.' }}
+                    </div>
+                </div>
+
+                <hr class="text-muted opacity-25">
+
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-telephone-inbound me-2"></i> Emergency Contact & Residence</h6>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <label class="text-muted small d-block">Emergency Contact Name</label>
+                        <span class="fw-semibold text-dark">{{ patient.emergency_contact_name or 'Not Provided' }}</span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small d-block">Emergency Contact Phone</label>
+                        <span class="fw-semibold text-dark">{{ patient.emergency_contact_phone or 'Not Provided' }}</span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small d-block">Residential Address</label>
+                        <span class="fw-semibold text-dark">{{ patient.address or 'Not Provided' }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white text-muted small py-3 d-flex justify-content-between">
+                <span>Profile Created: {{ patient.created_at.strftime('%Y-%m-%d %H:%M UTC') if patient.created_at else 'N/A' }}</span>
+                <span>Last Updated: {{ patient.updated_at.strftime('%Y-%m-%d %H:%M UTC') if patient.updated_at else 'N/A' }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
