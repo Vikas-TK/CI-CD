@@ -4,7 +4,9 @@ from app.models.user import User, Role
 from app.models.patient import Patient
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
+from app.services.doctor_service import DoctorService
 from app.utils.decorators import admin_required
+
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -12,6 +14,7 @@ admin_bp = Blueprint("admin", __name__)
 @admin_bp.route("/dashboard")
 @admin_required
 def dashboard():
+
     """Administrator Dashboard with operational overview metrics."""
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
@@ -229,3 +232,155 @@ def patient_update(patient_id):
 
     flash(f"Patient profile for {updated_patient.full_name} updated successfully.", "success")
     return redirect(url_for("admin.patient_details", patient_id=patient.patient_id))
+
+
+# ==============================================================================
+# MODULE 3: ADMINISTRATOR DOCTOR MANAGEMENT
+# ==============================================================================
+
+@admin_bp.route("/doctors", methods=["GET"])
+@admin_required
+def doctors_list():
+    """Administrator Doctor Directory with search, filters, and unprofiled warnings."""
+    search_query = request.args.get("search", "").strip()
+    specialization_filter = request.args.get("specialization", "").strip()
+    status_filter = request.args.get("status", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    query = DoctorService.list_doctors(
+        search_query=search_query,
+        specialization_filter=specialization_filter,
+        status_filter=status_filter
+    )
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
+    doctors = pagination.items
+    unprofiled_doctors = DoctorService.get_unprofiled_doctor_users()
+
+    return render_template(
+        "admin/doctors/index.html",
+        doctors=doctors,
+        pagination=pagination,
+        search_query=search_query,
+        specialization_filter=specialization_filter,
+        status_filter=status_filter,
+        specializations=DoctorService.VALID_SPECIALIZATIONS,
+        unprofiled_doctors=unprofiled_doctors
+    )
+
+
+@admin_bp.route("/doctors/create", methods=["GET", "POST"])
+@admin_required
+def doctor_create():
+    """Administrator interface to provision a new doctor account and medical profile."""
+    unprofiled_doctors = DoctorService.get_unprofiled_doctor_users()
+
+    if request.method == "POST":
+        existing_user_id = request.form.get("existing_user_id", "").strip()
+        specialization = request.form.get("specialization", "").strip()
+
+        if existing_user_id:
+            doctor, errors = DoctorService.create_doctor_profile(
+                user_id=existing_user_id,
+                specialization=specialization
+            )
+        else:
+            first_name = request.form.get("first_name", "")
+            last_name = request.form.get("last_name", "")
+            email = request.form.get("email", "")
+            phone_number = request.form.get("phone_number", "")
+            password = request.form.get("password", "")
+            is_active = (
+                request.form.get("is_active") == "1" or
+                request.form.get("is_active") == "true" or
+                "is_active" in request.form
+            )
+
+            doctor, errors = DoctorService.create_doctor_with_account(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                phone_number=phone_number,
+                password=password,
+                specialization=specialization,
+                is_active=is_active
+            )
+
+        if errors:
+            for err in errors:
+                flash(err, "danger")
+            return render_template(
+                "admin/doctors/create.html",
+                form_data=request.form,
+                specializations=DoctorService.VALID_SPECIALIZATIONS,
+                unprofiled_doctors=unprofiled_doctors
+            ), 400
+
+        flash(f"Doctor profile for Dr. {doctor.full_name} created successfully.", "success")
+        return redirect(url_for("admin.doctor_details", doctor_id=doctor.doctor_id))
+
+    return render_template(
+        "admin/doctors/create.html",
+        specializations=DoctorService.VALID_SPECIALIZATIONS,
+        unprofiled_doctors=unprofiled_doctors
+    )
+
+
+@admin_bp.route("/doctors/<int:doctor_id>", methods=["GET"])
+@admin_required
+def doctor_details(doctor_id):
+    """Administrator detailed doctor profile view."""
+    doctor = DoctorService.get_doctor_by_id(doctor_id)
+    if not doctor:
+        flash("Doctor profile record not found.", "danger")
+        return redirect(url_for("admin.doctors_list"))
+
+    return render_template("admin/doctors/view.html", doctor=doctor)
+
+
+@admin_bp.route("/doctors/<int:doctor_id>/edit", methods=["GET"])
+@admin_required
+def doctor_edit(doctor_id):
+    """Administrator edit doctor profile form."""
+    doctor = DoctorService.get_doctor_by_id(doctor_id)
+    if not doctor:
+        flash("Doctor profile record not found.", "danger")
+        return redirect(url_for("admin.doctors_list"))
+
+    return render_template(
+        "admin/doctors/edit.html",
+        doctor=doctor,
+        specializations=DoctorService.VALID_SPECIALIZATIONS
+    )
+
+
+@admin_bp.route("/doctors/<int:doctor_id>/update", methods=["POST"])
+@admin_required
+def doctor_update(doctor_id):
+    """Administrator update doctor profile handler."""
+    doctor = DoctorService.get_doctor_by_id(doctor_id)
+    if not doctor:
+        flash("Doctor profile record not found.", "danger")
+        return redirect(url_for("admin.doctors_list"))
+
+    specialization = request.form.get("specialization", "")
+    phone_number = request.form.get("phone_number", "")
+
+    updated_doc, errors = DoctorService.update_doctor_profile(
+        doctor_id=doctor.doctor_id,
+        updating_user=current_user,
+        specialization=specialization,
+        phone_number=phone_number
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+        return render_template(
+            "admin/doctors/edit.html",
+            doctor=doctor,
+            form_data=request.form,
+            specializations=DoctorService.VALID_SPECIALIZATIONS
+        ), 400
+
+    flash(f"Doctor profile for Dr. {updated_doc.full_name} updated successfully.", "success")
+    return redirect(url_for("admin.doctor_details", doctor_id=doctor.doctor_id))
