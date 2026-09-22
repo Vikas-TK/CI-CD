@@ -45,6 +45,8 @@ Module 1 establishes the authentication backbone and authorization infrastructur
 
 ---
 
+---
+
 ## 3. Module 2: Patient Management
 
 Module 2 implements comprehensive patient demographic and health profile management linked 1-to-1 with user accounts.
@@ -66,7 +68,27 @@ Module 2 implements comprehensive patient demographic and health profile managem
 
 ---
 
-## 4. Technology Stack
+## 4. Module 3: Doctor Management
+
+Module 3 implements doctor clinical profiles and specialization management integrated with user accounts and hospital directories.
+
+### Key Responsibilities:
+1. **Controlled Account Provisioning**: Only authenticated Administrators or system CLI commands can provision `DOCTOR` accounts and link `Doctor` medical profiles. Public self-registration for doctor roles is strictly prohibited.
+2. **1-to-1 Doctor Profile Association**: Each doctor profile links uniquely to an authenticated `DOCTOR` user (`users.user_id`). Prevents duplicate profiles and enforces role validation.
+3. **Administrator Doctor Management**:
+   - Full doctor registry (`/admin/doctors`) with multi-parameter search (Name, Email, Phone, Specialization, Doctor ID) and specialization/status filters.
+   - Atomic doctor provisioning (`/admin/doctors/create`) to create credentials and attach specializations in a single workflow.
+   - Detailed doctor profile view (`/admin/doctors/<doctor_id>`) and profile updates (`/admin/doctors/<doctor_id>/edit`).
+   - Automatic detection of unprofiled doctor user accounts.
+4. **Doctor Self-Service**:
+   - Authenticated doctors view their own medical profile on `/doctor/profile`.
+   - Doctors update permitted fields (specialization, phone number) on `/doctor/profile/edit` with server-side protection preventing ID or role tampering.
+5. **Hospital Doctor Directory**:
+   - Public/hospital-wide directory (`/doctors`) allowing patients, staff, and visitors to search active doctors by name or filter by clinical specialization.
+
+---
+
+## 5. Technology Stack
 
 - **Backend**: Python 3.10+, Flask 3.x, Flask-SQLAlchemy, Flask-Migrate, Flask-Login, Flask-WTF, Werkzeug.
 - **Frontend**: HTML5, CSS3, JavaScript (Fetch API), Bootstrap 5.3, Bootstrap Icons, Google Fonts (Inter).
@@ -76,9 +98,9 @@ Module 2 implements comprehensive patient demographic and health profile managem
 
 ---
 
-## 5. Database Design
+## 6. Database Design
 
-### 5.1 `users` Table
+### 6.1 `users` Table
 Authentication credentials and account statuses are encapsulated in the `users` table:
 
 | Column Name | Data Type | Constraints | Description |
@@ -94,7 +116,7 @@ Authentication credentials and account statuses are encapsulated in the `users` 
 | `created_at` | `DATETIME` | `NOT NULL` | Account creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
 
-### 5.2 `patients` Table
+### 6.2 `patients` Table
 Clinical demographics and medical intake data are encapsulated in the `patients` table:
 
 | Column Name | Data Type | Constraints | Description |
@@ -109,6 +131,17 @@ Clinical demographics and medical intake data are encapsulated in the `patients`
 | `emergency_contact_name` | `VARCHAR(100)` | `NULLABLE` | Primary emergency contact name |
 | `emergency_contact_phone`| `VARCHAR(20)` | `NULLABLE` | Emergency contact phone number |
 | `address` | `VARCHAR(255)` | `NULLABLE` | Residential address |
+| `created_at` | `DATETIME` | `NOT NULL` | Record creation timestamp (UTC) |
+| `updated_at` | `DATETIME` | `NOT NULL` | Record last updated timestamp (UTC) |
+
+### 6.3 `doctors` Table
+Medical specialization and clinical practice profile are encapsulated in the `doctors` table:
+
+| Column Name | Data Type | Constraints | Description |
+|---|---|---|---|
+| `doctor_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique doctor profile ID |
+| `user_id` | `INTEGER` | `NOT NULL, UNIQUE, FOREIGN KEY (users.user_id) ON DELETE CASCADE` | 1-to-1 link to doctor user |
+| `specialization` | `VARCHAR(100)` | `NOT NULL` | Clinical specialization |
 | `created_at` | `DATETIME` | `NOT NULL` | Record creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Record last updated timestamp (UTC) |
 
@@ -314,7 +347,7 @@ docker compose down
 
 - [x] **Module 1**: User Authentication & Role Management (Completed)
 - [x] **Module 2**: Patient Management – Profiles & Demographics (Completed)
-- [ ] **Module 3**: Doctor Management (Specializations & Schedules)
+- [x] **Module 3**: Doctor Management – Specializations & Profiles (Completed)
 - [ ] **Module 4**: Patient–Doctor Appointments
 - [ ] **Module 5**: Staff Management
 - [ ] **Module 6**: Room Management
@@ -324,4 +357,5 @@ docker compose down
 - [ ] **Module 10**: Pharmacy Inventory & Dispensing
 - [ ] **Module 11**: Cost & Itemized Billing
 - [ ] **Module 12**: Payment Records & Receipts
+
 

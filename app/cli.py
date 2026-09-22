@@ -3,8 +3,60 @@ import click
 from app import db
 from app.models.user import User, Role
 from app.models.patient import Patient
+from app.models.doctor import Doctor
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
+from app.services.doctor_service import DoctorService
+
+
+def _seed_sample_users():
+    demo_users = [
+        ("Admin", "User", "admin@hospital.org", "+1000000001", "AdminPass123!", Role.ADMINISTRATOR),
+        ("Sarah", "Jenkins", "doctor.jenkins@hospital.org", "+1000000002", "DoctorPass123!", Role.DOCTOR),
+        ("Mark", "Spencer", "staff.mark@hospital.org", "+1000000003", "StaffPass123!", Role.STAFF),
+        ("Alice", "Brown", "patient.alice@example.com", "+1000000004", "PatientPass123!", Role.PATIENT),
+        ("David", "Kim", "pharmacy.david@hospital.org", "+1000000005", "PharmacyPass123!", Role.PHARMACY_MANAGER),
+    ]
+    created = 0
+    for fname, lname, email, phone, pwd, role in demo_users:
+        if not User.query.filter_by(email=email).first():
+            user, _ = UserService.create_privileged_user(
+                first_name=fname,
+                last_name=lname,
+                email=email,
+                phone_number=phone,
+                password=pwd,
+                role=role,
+                is_active=True
+            )
+            if user:
+                created += 1
+    return created
+
+
+def _seed_sample_patient():
+    alice_user = User.query.filter_by(email="patient.alice@example.com").first()
+    if alice_user and not Patient.query.filter_by(user_id=alice_user.user_id).first():
+        PatientService.create_patient_profile(
+            user_id=alice_user.user_id,
+            age=29,
+            gender="Female",
+            aadhaar_number="123456789012",
+            blood_group="O+",
+            disease_or_complaint="Seasonal allergies and mild respiratory congestion.",
+            emergency_contact_name="Robert Brown",
+            emergency_contact_phone="+1000000099",
+            address="124 Park Avenue, Metro City"
+        )
+
+
+def _seed_sample_doctor():
+    sarah_user = User.query.filter_by(email="doctor.jenkins@hospital.org").first()
+    if sarah_user and not Doctor.query.filter_by(user_id=sarah_user.user_id).first():
+        DoctorService.create_doctor_profile(
+            user_id=sarah_user.user_id,
+            specialization="Cardiologist"
+        )
 
 
 def register_cli_commands(app):
@@ -55,43 +107,7 @@ def register_cli_commands(app):
     def seed_data():
         """Seeds sample users and patient profile for development and evaluation."""
         db.create_all()
-
-        demo_users = [
-            ("Admin", "User", "admin@hospital.org", "+1000000001", "AdminPass123!", Role.ADMINISTRATOR),
-            ("Sarah", "Jenkins", "doctor.jenkins@hospital.org", "+1000000002", "DoctorPass123!", Role.DOCTOR),
-            ("Mark", "Spencer", "staff.mark@hospital.org", "+1000000003", "StaffPass123!", Role.STAFF),
-            ("Alice", "Brown", "patient.alice@example.com", "+1000000004", "PatientPass123!", Role.PATIENT),
-            ("David", "Kim", "pharmacy.david@hospital.org", "+1000000005", "PharmacyPass123!", Role.PHARMACY_MANAGER),
-        ]
-
-        created_count = 0
-        for fname, lname, email, phone, pwd, role in demo_users:
-            if not User.query.filter_by(email=email).first():
-                user, errors = UserService.create_privileged_user(
-                    first_name=fname,
-                    last_name=lname,
-                    email=email,
-                    phone_number=phone,
-                    password=pwd,
-                    role=role,
-                    is_active=True
-                )
-                if user:
-                    created_count += 1
-
-        # Seed sample patient profile for Alice Brown
-        alice_user = User.query.filter_by(email="patient.alice@example.com").first()
-        if alice_user and not Patient.query.filter_by(user_id=alice_user.user_id).first():
-            PatientService.create_patient_profile(
-                user_id=alice_user.user_id,
-                age=29,
-                gender="Female",
-                aadhaar_number="123456789012",
-                blood_group="O+",
-                disease_or_complaint="Seasonal allergies and mild respiratory congestion.",
-                emergency_contact_name="Robert Brown",
-                emergency_contact_phone="+1000000099",
-                address="124 Park Avenue, Metro City"
-            )
-
-        click.echo(click.style(f"Seeded {created_count} demo user accounts and patient profile.", fg="green"))
+        created_count = _seed_sample_users()
+        _seed_sample_patient()
+        _seed_sample_doctor()
+        click.echo(click.style(f"Seeded {created_count} demo user accounts, doctor, and patient profiles.", fg="green"))

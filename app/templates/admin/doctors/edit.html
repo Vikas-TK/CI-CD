@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Dr. {{ doctor.full_name }} - Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.doctors_list') }}">Doctors</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.doctor_details', doctor_id=doctor.doctor_id) }}">Dr. {{ doctor.full_name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            </ol>
+        </nav>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="card-title fw-bold mb-0">
+                    <i class="bi bi-pencil-square me-2"></i>Update Doctor Profile
+                </h4>
+                <small class="text-white-50">Modify medical specialization and contact details for Dr. {{ doctor.full_name }}.</small>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('admin.doctor_update', doctor_id=doctor.doctor_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Protected Identifiers Card -->
+                    <div class="card bg-light border-0 mb-4 p-3">
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <small class="text-muted d-block">Doctor ID</small>
+                                <span class="fw-bold text-primary">#DOC-{{ "%04d"|format(doctor.doctor_id) }}</span>
+                            </div>
+                            <div class="col-sm-6">
+                                <small class="text-muted d-block">Doctor Account Name</small>
+                                <span class="fw-bold text-dark">Dr. {{ doctor.full_name }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-secondary mb-3 border-bottom pb-2">
+                        <i class="bi bi-award text-primary me-2"></i>Medical & Contact Information
+                    </h5>
+
+                    <div class="mb-3">
+                        <label for="specialization" class="form-label fw-semibold">Specialization <span class="text-danger">*</span></label>
+                        <select class="form-select" id="specialization" name="specialization" required>
+                            {% for spec in specializations %}
+                                <option value="{{ spec }}" {% if (form_data and form_data.get('specialization') == spec) or (not form_data and doctor.specialization == spec) %}selected{% endif %}>
+                                    {{ spec }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="phone_number" class="form-label fw-semibold">Phone Number</label>
+                        <input type="text" class="form-control" id="phone_number" name="phone_number" 
+                               value="{{ form_data.get('phone_number', doctor.phone_number) if form_data else doctor.phone_number }}" 
+                               placeholder="+1000000002">
+                        <small class="text-muted">Updates the primary telephone number associated with this doctor's account.</small>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('admin.doctor_details', doctor_id=doctor.doctor_id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-save me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
