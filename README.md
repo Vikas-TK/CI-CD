@@ -228,7 +228,48 @@ When seeded via `flask seed-data`, the following test accounts are available:
 
 ---
 
-## 8. Running Automated Tests
+## 8. Application Routes & Access Control Matrix
+
+The table below outlines all available routes, their required HTTP methods, access permissions, and functional purpose across Modules 1, 2, and 3:
+
+| Blueprint / Module | Endpoint Path | Method | Authorized Roles | Description |
+|---|---|---|---|---|
+| **Main** | `/` | `GET` | Public | Hospital landing page and hero section |
+| **Main** | `/health` | `GET` | Public | Health probe endpoint for Docker & CI/CD |
+| **Main** | `/doctors` | `GET` | Public / All | Public Doctor Directory with specialization search & filter |
+| **Auth** | `/auth/register` | `GET, POST` | Public (Anonymous) | Patient self-registration portal |
+| **Auth** | `/auth/login` | `GET, POST` | Public (Anonymous) | Multi-identifier login (Email or Phone) |
+| **Auth** | `/auth/logout` | `GET` | Authenticated (All) | Secure session termination and logout |
+| **Admin** | `/admin/dashboard` | `GET` | `ADMINISTRATOR` | Overview metrics and activity statistics |
+| **Admin** | `/admin/users` | `GET` | `ADMINISTRATOR` | User account management directory |
+| **Admin** | `/admin/users/create` | `POST` | `ADMINISTRATOR` | Privileged staff/doctor/admin provisioning |
+| **Admin** | `/admin/users/<id>/toggle-status` | `POST` | `ADMINISTRATOR` | Account activation / deactivation with self-protection |
+| **Admin** | `/admin/users/<id>/change-role` | `POST` | `ADMINISTRATOR` | Role reassignment with sole admin protection |
+| **Admin** | `/admin/patients` | `GET` | `ADMINISTRATOR` | Patient registry with search & pagination |
+| **Admin** | `/admin/patients/<id>` | `GET` | `ADMINISTRATOR` | Detailed clinical patient record view |
+| **Admin** | `/admin/patients/<id>/edit` | `GET` | `ADMINISTRATOR` | Edit patient demographic and medical profile |
+| **Admin** | `/admin/patients/<id>/update` | `POST` | `ADMINISTRATOR` | Submit patient profile modifications |
+| **Admin** | `/admin/doctors` | `GET` | `ADMINISTRATOR` | Doctor registry with specialization filters & unprofiled warnings |
+| **Admin** | `/admin/doctors/create` | `GET, POST` | `ADMINISTRATOR` | Atomic doctor user creation and specialization linkage |
+| **Admin** | `/admin/doctors/<id>` | `GET` | `ADMINISTRATOR` | Complete doctor profile and account view |
+| **Admin** | `/admin/doctors/<id>/edit` | `GET` | `ADMINISTRATOR` | Edit doctor specialization and contact info |
+| **Admin** | `/admin/doctors/<id>/update` | `POST` | `ADMINISTRATOR` | Submit doctor profile modifications |
+| **Doctor** | `/doctor/dashboard` | `GET` | `DOCTOR` | Doctor operational portal & clinical shortcuts |
+| **Doctor** | `/doctor/profile` | `GET` | `DOCTOR` | Doctor self-service profile page |
+| **Doctor** | `/doctor/profile/edit` | `GET` | `DOCTOR` | Edit doctor self-service profile |
+| **Doctor** | `/doctor/profile/update` | `POST` | `DOCTOR` | Submit self-service doctor profile updates |
+| **Doctor** | `/doctor/patients` | `GET` | `DOCTOR` | Read-only patient lookup for clinical consultations |
+| **Doctor** | `/doctor/patients/<id>` | `GET` | `DOCTOR` | Read-only detailed patient record |
+| **Staff** | `/staff/dashboard` | `GET` | `STAFF` | Hospital staff management portal |
+| **Staff** | `/staff/patients` | `GET` | `STAFF` | Read-only patient directory for admission/intake |
+| **Staff** | `/staff/patients/<id>` | `GET` | `STAFF` | Read-only detailed patient profile |
+| **Patient** | `/patient/dashboard` | `GET` | `PATIENT` | Patient portal with profile completion prompt |
+| **Patient** | `/patient/profile` | `GET` | `PATIENT` | View own demographic and medical record |
+| **Patient** | `/patient/profile/complete` | `GET, POST` | `PATIENT` | Initial patient demographic intake form |
+| **Patient** | `/patient/profile/edit` | `GET` | `PATIENT` | Patient self-service profile editor |
+| **Patient** | `/patient/profile/update` | `POST` | `PATIENT` | Submit permitted profile updates |
+| **Pharmacy** | `/pharmacy/dashboard` | `GET` | `PHARMACY_MANAGER` | Pharmacy manager portal |
+
 
 Pytest is configured for unit, integration, and security verification with JUnit XML and code coverage reports:
 
