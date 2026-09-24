@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Hospital Appointment Management{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% if is_staff %}{{ url_for('staff.dashboard') }}{% else %}{{ url_for('admin.dashboard') }}{% endif %}">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Appointment Registry</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h1 class="h3 mb-1 text-primary fw-bold">
+                <i class="bi bi-calendar2-range me-2"></i>Hospital Appointment Registry
+            </h1>
+            <p class="text-muted mb-0">Centralized appointment tracking, scheduling status oversight, and operational dispatch.</p>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 text-center p-3">
+                <span class="text-muted small text-uppercase fw-semibold">Total Consultations</span>
+                <span class="fs-4 fw-bold text-dark mt-1">{{ stats.total }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 text-center p-3 border-start border-warning border-4">
+                <span class="text-warning small text-uppercase fw-semibold">Pending Requests</span>
+                <span class="fs-4 fw-bold text-warning mt-1">{{ stats.pending }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 text-center p-3 border-start border-success border-4">
+                <span class="text-success small text-uppercase fw-semibold">Approved / Scheduled</span>
+                <span class="fs-4 fw-bold text-success mt-1">{{ stats.approved }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 text-center p-3 border-start border-info border-4">
+                <span class="text-info small text-uppercase fw-semibold">Completed</span>
+                <span class="fs-4 fw-bold text-info mt-1">{{ stats.completed }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3">
+            <form method="GET" action="{% if is_staff %}{{ url_for('staff.appointments_list') }}{% else %}{{ url_for('admin.appointments_list') }}{% endif %}" class="row g-2 align-items-center">
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control" placeholder="Search patient, doctor, reason..." value="{{ search_query or '' }}">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">-- All Statuses --</option>
+                        {% for st in all_statuses %}
+                        <option value="{{ st }}" {% if current_status == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="doctor_id" class="form-select form-select-sm">
+                        <option value="">-- All Doctors --</option>
+                        {% for doc in doctors %}
+                        <option value="{{ doc.doctor_id }}" {% if current_doctor_id == doc.doctor_id %}selected{% endif %}>
+                            Dr. {{ doc.full_name }} ({{ doc.specialization }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="date" class="form-control form-control-sm" value="{{ current_date or '' }}">
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary flex-grow-1">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    {% if search_query or current_status or current_doctor_id or current_date %}
+                    <a href="{% if is_staff %}{{ url_for('staff.appointments_list') }}{% else %}{{ url_for('admin.appointments_list') }}{% endif %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Appointments Table -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h5 class="card-title mb-0 fw-bold">All Appointments ({{ pagination.total }})</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if appointments %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#ID</th>
+                            <th>Patient Name</th>
+                            <th>Doctor & Specialization</th>
+                            <th>Date & Time</th>
+                            <th>Reason for Visit</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appt in appointments %}
+                        <tr>
+                            <td class="fw-bold text-muted">#{{ appt.appointment_id }}</td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ appt.patient_name }}</div>
+                                <small class="text-muted">ID: #{{ appt.patient_id }}</small>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">Dr. {{ appt.doctor_name }}</div>
+                                <span class="badge bg-light text-primary border">{{ appt.doctor_specialization }}</span>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">{{ appt.formatted_date }}</div>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ appt.formatted_time }}</small>
+                            </td>
+                            <td>
+                                <span class="text-truncate d-inline-block" style="max-width: 220px;" title="{{ appt.reason_for_visit }}">
+                                    {{ appt.reason_for_visit }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ appt.status_badge_class }} px-2 py-1 rounded-pill">
+                                    {{ appt.status }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{% if is_staff %}{{ url_for('staff.appointment_details', appointment_id=appt.appointment_id) }}{% else %}{{ url_for('admin.appointment_details', appointment_id=appt.appointment_id) }}{% endif %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Manage
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if pagination.pages > 1 %}
+            <div class="p-3 d-flex justify-content-center">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0">
+                        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if p %}
+                                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                    <a class="page-link" href="{% if is_staff %}{{ url_for('staff.appointments_list', page=p, search=search_query, status=current_status, doctor_id=current_doctor_id, date=current_date) }}{% else %}{{ url_for('admin.appointments_list', page=p, search=search_query, status=current_status, doctor_id=current_doctor_id, date=current_date) }}{% endif %}">{{ p }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-x display-4 text-muted"></i>
+                <h5 class="mt-3 text-muted">No appointments found</h5>
+                <p class="text-muted">No consultations matched your search and filter parameters.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

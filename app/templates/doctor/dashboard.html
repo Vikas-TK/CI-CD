@@ -24,7 +24,7 @@
 </div>
 
 
-<div class="row g-4">
+<div class="row g-4 mb-4">
     <div class="col-md-4">
         <div class="card h-100 p-3 stat-card doctor">
             <div class="card-body">
@@ -33,13 +33,20 @@
                         <i class="bi bi-calendar2-check fs-3"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted mb-0">Upcoming Consultations</h6>
-                        <h4 class="fw-bold mb-0">Appointments</h4>
+                        <h6 class="text-muted mb-0">Total Appointments</h6>
+                        <h4 class="fw-bold mb-0 text-info">{{ stats.get('total', 0) }}</h4>
                     </div>
                 </div>
-                <p class="card-text text-muted small">
-                    Patient consultations, schedule tracking, and appointment management (Integrated in Module 4).
-                </p>
+                <div class="d-flex justify-content-between text-muted small mb-3">
+                    <span>Pending: <strong class="text-warning">{{ stats.get('pending', 0) }}</strong></span>
+                    <span>Confirmed: <strong class="text-success">{{ stats.get('approved', 0) }}</strong></span>
+                    <span>Done: <strong class="text-info">{{ stats.get('completed', 0) }}</strong></span>
+                </div>
+                <div class="d-grid">
+                    <a href="{{ url_for('doctor.appointments_list') }}" class="btn btn-sm btn-outline-info fw-semibold">
+                        <i class="bi bi-calendar3 me-1"></i> Manage Appointments
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -57,7 +64,7 @@
                     </div>
                 </div>
                 <p class="card-text text-muted small">
-                    Issue digital prescriptions, medicine dosage, and patient instructions (Integrated in Module 9).
+                    Issue digital prescriptions, medicine dosage, and patient instructions (Module 9).
                 </p>
             </div>
         </div>
@@ -76,10 +83,57 @@
                     </div>
                 </div>
                 <p class="card-text text-muted small">
-                    Track admitted patients across wards and private recovery rooms (Integrated in Module 8).
+                    Track admitted patients across wards and private recovery rooms (Module 8).
                 </p>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Today's Confirmed Consultations -->
+{% if today_appointments %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm border-0 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-calendar-event me-2 text-primary"></i> Confirmed Scheduled Appointments</h5>
+                <a href="{{ url_for('doctor.appointments_list') }}" class="btn btn-sm btn-outline-primary">View Full Schedule</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Date & Time</th>
+                            <th>Reason / Symptoms</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appt in today_appointments %}
+                        <tr>
+                            <td>
+                                <span class="fw-semibold text-dark">{{ appt.patient_name }}</span>
+                                <small class="text-muted d-block">ID: #{{ appt.patient_id }}</small>
+                            </td>
+                            <td>
+                                <div>{{ appt.formatted_date }}</div>
+                                <small class="text-muted">{{ appt.formatted_time }}</small>
+                            </td>
+                            <td><span class="text-truncate d-inline-block" style="max-width: 260px;">{{ appt.reason_for_visit }}</span></td>
+                            <td><span class="badge bg-{{ appt.status_badge_class }} rounded-pill">{{ appt.status }}</span></td>
+                            <td class="text-end">
+                                <a href="{{ url_for('doctor.view_appointment', appointment_id=appt.appointment_id) }}" class="btn btn-sm btn-primary">Review / Complete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
