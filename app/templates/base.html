@@ -68,6 +68,11 @@
                                     <i class="bi bi-person-lines-fill me-1"></i> Patients
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('admin.appointment') %}active{% endif %}" href="{{ url_for('admin.appointments_list') }}">
+                                    <i class="bi bi-calendar-check me-1"></i> Appointments
+                                </a>
+                            </li>
                         {% elif current_user.is_doctor %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'doctor.dashboard' %}active{% endif %}" href="{{ url_for('doctor.dashboard') }}">
@@ -77,6 +82,11 @@
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint and request.endpoint.startswith('doctor.view_profile') or request.endpoint.startswith('doctor.edit_profile') %}active{% endif %}" href="{{ url_for('doctor.view_profile') }}">
                                     <i class="bi bi-person-vcard me-1"></i> My Profile
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('doctor.appointments') %}active{% endif %}" href="{{ url_for('doctor.appointments_list') }}">
+                                    <i class="bi bi-calendar-check me-1"></i> Appointments
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -95,6 +105,11 @@
                                     <i class="bi bi-person-lines-fill me-1"></i> Patient Registry
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('staff.appointment') %}active{% endif %}" href="{{ url_for('staff.appointments_list') }}">
+                                    <i class="bi bi-calendar-check me-1"></i> Appointments
+                                </a>
+                            </li>
                         {% elif current_user.is_patient %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'patient.dashboard' %}active{% endif %}" href="{{ url_for('patient.dashboard') }}">
@@ -102,7 +117,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('patient.view') or request.endpoint.startswith('patient.edit') %}active{% endif %}" href="{{ url_for('patient.view_profile') }}">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('patient.list_appointments') or request.endpoint.startswith('patient.request_appointment') or request.endpoint.startswith('patient.view_appointment') %}active{% endif %}" href="{{ url_for('patient.list_appointments') }}">
+                                    <i class="bi bi-calendar-check me-1"></i> My Appointments
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('patient.view_profile') or request.endpoint.startswith('patient.edit_profile') %}active{% endif %}" href="{{ url_for('patient.view_profile') }}">
                                     <i class="bi bi-person-vcard me-1"></i> My Medical Profile
                                 </a>
                             </li>

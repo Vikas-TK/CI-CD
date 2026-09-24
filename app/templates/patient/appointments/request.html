@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Book Consultation Appointment{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.list_appointments') }}">My Appointments</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Book Consultation</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-calendar-plus fs-3 me-3"></i>
+                        <div>
+                            <h4 class="mb-0 fw-bold">Request Clinical Appointment</h4>
+                            <small class="text-light opacity-75">Schedule a consultation with an available hospital physician</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Patient Summary Banner -->
+                    <div class="alert alert-light border d-flex align-items-center mb-4">
+                        <i class="bi bi-person-circle fs-3 text-primary me-3"></i>
+                        <div>
+                            <div class="fw-bold text-dark">{{ patient.full_name }}</div>
+                            <small class="text-muted">
+                                Patient ID: #{{ patient.patient_id }} | Age: {{ patient.age }} | Gender: {{ patient.gender }} | Blood Group: {{ patient.blood_group }}
+                            </small>
+                        </div>
+                    </div>
+
+                    <form action="{{ url_for('patient.request_appointment') }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <!-- Doctor Selection -->
+                        <div class="mb-3">
+                            <label for="doctor_id" class="form-label fw-semibold">Select Doctor / Specialist <span class="text-danger">*</span></label>
+                            <select class="form-select" id="doctor_id" name="doctor_id" required>
+                                <option value="" disabled {% if not form_data.get('doctor_id') %}selected{% endif %}>-- Choose Physician --</option>
+                                {% for doc in doctors %}
+                                <option value="{{ doc.doctor_id }}" {% if form_data.get('doctor_id')|string == doc.doctor_id|string %}selected{% endif %}>
+                                    Dr. {{ doc.full_name }} — {{ doc.specialization }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Choose the appropriate clinical specialist for your health condition.</div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <!-- Appointment Date -->
+                            <div class="col-md-6">
+                                <label for="appointment_date" class="form-label fw-semibold">Consultation Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="appointment_date" name="appointment_date" 
+                                       value="{{ form_data.get('appointment_date', '') }}" required>
+                                <div class="form-text">Must be today or a future date.</div>
+                            </div>
+
+                            <!-- Appointment Time Slot -->
+                            <div class="col-md-6">
+                                <label for="appointment_time" class="form-label fw-semibold">Time Slot (HH:MM) <span class="text-danger">*</span></label>
+                                <select class="form-select" id="appointment_time" name="appointment_time" required>
+                                    <option value="" disabled {% if not form_data.get('appointment_time') %}selected{% endif %}>-- Select Time Slot --</option>
+                                    <option value="09:00" {% if form_data.get('appointment_time') == '09:00' %}selected{% endif %}>09:00 AM</option>
+                                    <option value="09:30" {% if form_data.get('appointment_time') == '09:30' %}selected{% endif %}>09:30 AM</option>
+                                    <option value="10:00" {% if form_data.get('appointment_time') == '10:00' %}selected{% endif %}>10:00 AM</option>
+                                    <option value="10:30" {% if form_data.get('appointment_time') == '10:30' %}selected{% endif %}>10:30 AM</option>
+                                    <option value="11:00" {% if form_data.get('appointment_time') == '11:00' %}selected{% endif %}>11:00 AM</option>
+                                    <option value="11:30" {% if form_data.get('appointment_time') == '11:30' %}selected{% endif %}>11:30 AM</option>
+                                    <option value="14:00" {% if form_data.get('appointment_time') == '14:00' %}selected{% endif %}>02:00 PM</option>
+                                    <option value="14:30" {% if form_data.get('appointment_time') == '14:30' %}selected{% endif %}>02:30 PM</option>
+                                    <option value="15:00" {% if form_data.get('appointment_time') == '15:00' %}selected{% endif %}>03:00 PM</option>
+                                    <option value="15:30" {% if form_data.get('appointment_time') == '15:30' %}selected{% endif %}>03:30 PM</option>
+                                    <option value="16:00" {% if form_data.get('appointment_time') == '16:00' %}selected{% endif %}>04:00 PM</option>
+                                    <option value="16:30" {% if form_data.get('appointment_time') == '16:30' %}selected{% endif %}>04:30 PM</option>
+                                </select>
+                                <div class="form-text">Available 30-minute outpatient consultation slots.</div>
+                            </div>
+                        </div>
+
+                        <!-- Reason for Visit -->
+                        <div class="mb-4">
+                            <label for="reason_for_visit" class="form-label fw-semibold">Reason for Visit / Symptoms Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="reason_for_visit" name="reason_for_visit" rows="4" 
+                                      placeholder="Describe your current symptoms, medical concerns, or reasons for requesting this consultation..." required>{{ form_data.get('reason_for_visit', '') }}</textarea>
+                            <div class="form-text">Minimum 3 characters. Provide concise details to assist the doctor during review.</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('patient.list_appointments') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Back to Appointments
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-send me-1"></i> Submit Appointment Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Set minimum date to today
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('appointment_date');
+        if (dateInput) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.min = today;
+            if (!dateInput.value) {
+                dateInput.value = today;
+            }
+        }
+    });
+</script>
+{% endblock %}

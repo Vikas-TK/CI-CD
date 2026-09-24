@@ -1,12 +1,15 @@
 import os
+from datetime import date, timedelta
 import click
 from app import db
 from app.models.user import User, Role
 from app.models.patient import Patient
 from app.models.doctor import Doctor
+from app.models.appointment import Appointment, AppointmentStatus
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
+from app.services.appointment_service import AppointmentService
 
 
 def _seed_sample_users():
@@ -53,10 +56,45 @@ def _seed_sample_patient():
 def _seed_sample_doctor():
     sarah_user = User.query.filter_by(email="doctor.jenkins@hospital.org").first()
     if sarah_user and not Doctor.query.filter_by(user_id=sarah_user.user_id).first():
+
         DoctorService.create_doctor_profile(
             user_id=sarah_user.user_id,
             specialization="Cardiologist"
         )
+
+
+def _seed_sample_appointments():
+    alice_user = User.query.filter_by(email="patient.alice@example.com").first()
+    sarah_user = User.query.filter_by(email="doctor.jenkins@hospital.org").first()
+
+    if not alice_user or not sarah_user:
+        return
+
+    patient = Patient.query.filter_by(user_id=alice_user.user_id).first()
+    doctor = Doctor.query.filter_by(user_id=sarah_user.user_id).first()
+
+    if patient and doctor and Appointment.query.count() == 0:
+        tomorrow = (date.today() + timedelta(days=1)).isoformat()
+        next_week = (date.today() + timedelta(days=7)).isoformat()
+
+        AppointmentService.create_appointment(
+            patient_id=patient.patient_id,
+            doctor_id=doctor.doctor_id,
+            date_input=tomorrow,
+            time_input="10:00",
+            reason_for_visit="Routine cardiac follow-up and blood pressure checkup."
+        )
+
+        appt2, _ = AppointmentService.create_appointment(
+            patient_id=patient.patient_id,
+            doctor_id=doctor.doctor_id,
+            date_input=next_week,
+            time_input="14:30",
+            reason_for_visit="Chest tightness and shortness of breath evaluation."
+        )
+        if appt2:
+            appt2.status = AppointmentStatus.APPROVED
+            db.session.commit()
 
 
 def register_cli_commands(app):
@@ -105,9 +143,10 @@ def register_cli_commands(app):
 
     @app.cli.command("seed-data")
     def seed_data():
-        """Seeds sample users and patient profile for development and evaluation."""
+        """Seeds sample users, doctors, patients, and appointments for development and evaluation."""
         db.create_all()
         created_count = _seed_sample_users()
         _seed_sample_patient()
         _seed_sample_doctor()
-        click.echo(click.style(f"Seeded {created_count} demo user accounts, doctor, and patient profiles.", fg="green"))
+        _seed_sample_appointments()
+        click.echo(click.style(f"Seeded {created_count} demo user accounts, doctor, patient, and appointments.", fg="green"))

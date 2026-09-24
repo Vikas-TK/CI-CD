@@ -115,3 +115,32 @@ def inactive_user(app):
         is_active=False
     )
     return user
+
+
+@pytest.fixture
+def patient_profile(patient_user):
+    """Creates a Patient profile associated with patient_user."""
+    from app.services.patient_service import PatientService
+    patient, _ = PatientService.create_patient_profile(
+        user_id=patient_user.user_id,
+        age=30,
+        gender="Male",
+        aadhaar_number="123456789012",
+        blood_group="O+",
+        disease_or_complaint="Chest pain and breathing difficulty",
+        emergency_contact_name="Jane Doe",
+        emergency_contact_phone="+1000000099",
+        address="123 Medical Way, Cityville"
+    )
+    return patient
+
+
+@pytest.fixture
+def doctor_profile(doctor_user):
+    """Creates a Doctor profile associated with doctor_user."""
+    from app.services.doctor_service import DoctorService
+    doctor, _ = DoctorService.create_doctor_profile(
+        user_id=doctor_user.user_id,
+        specialization="Cardiologist"
+    )
+    return doctor

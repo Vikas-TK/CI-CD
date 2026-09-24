@@ -88,7 +88,40 @@ Module 3 implements doctor clinical profiles and specialization management integ
 
 ---
 
-## 5. Technology Stack
+## 5. Module 4: Patient–Doctor Appointment Management
+
+Module 4 implements clinical consultation scheduling, appointment lifecycle transitions, and conflict-free booking rules.
+
+### Key Responsibilities:
+1. **Normalized Association**: Links an appointment directly between a `Patient` (`patients.patient_id`) and a `Doctor` (`doctors.doctor_id`). No duplication of patient/doctor personal names, emails, or credentials.
+2. **Scheduling Rules & Validation**:
+   - Dates cannot be in the past (`appointment_date >= today`).
+   - Strict time format validation (`HH:MM`).
+   - Reason for visit is mandatory (3 to 1000 characters).
+   - Only active doctors with active user accounts can be booked.
+   - **Double-booking conflict prevention**: Prevents booking or approving duplicate appointments for the same doctor at the same date and time slot.
+3. **Strict Role-Based Lifecycle & State Transitions**:
+   - **Patient**: Can book appointments for themselves, view their consultation history, and cancel their own `Pending` or `Approved` appointments.
+   - **Doctor**: Can view assigned appointments, approve pending requests, reject pending requests with notes, and mark approved appointments as `Completed`.
+   - **Staff & Administrator**: Can view hospital-wide appointments with search and filters, and manage status transitions (`Approved`, `Rejected`, `Cancelled`, `Completed`).
+   - Terminal statuses (`Rejected`, `Cancelled`, `Completed`) cannot be reopened or altered.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending: Patient Requests Appointment
+    Pending --> Approved: Doctor / Staff / Admin Approves
+    Pending --> Rejected: Doctor / Staff / Admin Rejects
+    Pending --> Cancelled: Patient / Staff / Admin Cancels
+    Approved --> Completed: Doctor / Staff / Admin Concludes
+    Approved --> Cancelled: Patient / Staff / Admin Cancels
+    Rejected --> [*]
+    Completed --> [*]
+    Cancelled --> [*]
+```
+
+---
+
+## 6. Technology Stack
 
 - **Backend**: Python 3.10+, Flask 3.x, Flask-SQLAlchemy, Flask-Migrate, Flask-Login, Flask-WTF, Werkzeug.
 - **Frontend**: HTML5, CSS3, JavaScript (Fetch API), Bootstrap 5.3, Bootstrap Icons, Google Fonts (Inter).
@@ -134,7 +167,7 @@ Clinical demographics and medical intake data are encapsulated in the `patients`
 | `created_at` | `DATETIME` | `NOT NULL` | Record creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Record last updated timestamp (UTC) |
 
-### 6.3 `doctors` Table
+### 7.3 `doctors` Table
 Medical specialization and clinical practice profile are encapsulated in the `doctors` table:
 
 | Column Name | Data Type | Constraints | Description |
@@ -145,9 +178,25 @@ Medical specialization and clinical practice profile are encapsulated in the `do
 | `created_at` | `DATETIME` | `NOT NULL` | Record creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Record last updated timestamp (UTC) |
 
+### 7.4 `appointments` Table
+Clinical consultations and scheduling lifecycle states are encapsulated in the `appointments` table:
+
+| Column Name | Data Type | Constraints | Description |
+|---|---|---|---|
+| `appointment_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique appointment ID |
+| `patient_id` | `INTEGER` | `NOT NULL, FOREIGN KEY (patients.patient_id) ON DELETE CASCADE, INDEX` | Foreign key to patient |
+| `doctor_id` | `INTEGER` | `NOT NULL, FOREIGN KEY (doctors.doctor_id) ON DELETE CASCADE, INDEX` | Foreign key to doctor |
+| `appointment_date` | `DATE` | `NOT NULL, INDEX` | Scheduled consultation date |
+| `appointment_time` | `TIME` | `NOT NULL` | Scheduled consultation time |
+| `reason_for_visit` | `TEXT` | `NOT NULL` | Patient symptoms / consultation complaint |
+| `status` | `VARCHAR(20)` | `NOT NULL, INDEX, DEFAULT 'Pending'` | Lifecycle state (`Pending`, `Approved`, `Rejected`, `Cancelled`, `Completed`) |
+| `review_notes` | `TEXT` | `NULLABLE` | Clinical remarks or cancellation reasons |
+| `created_at` | `DATETIME` | `NOT NULL` | Booking creation timestamp (UTC) |
+| `updated_at` | `DATETIME` | `NOT NULL` | Status update timestamp (UTC) |
+
 ---
 
-## 6. Installation & Local Setup
+## 8. Installation & Local Setup
 
 ### 6.1 Prerequisites
 - Python 3.10+
@@ -389,7 +438,7 @@ docker compose down
 - [x] **Module 1**: User Authentication & Role Management (Completed)
 - [x] **Module 2**: Patient Management – Profiles & Demographics (Completed)
 - [x] **Module 3**: Doctor Management – Specializations & Profiles (Completed)
-- [ ] **Module 4**: Patient–Doctor Appointments
+- [x] **Module 4**: Patient–Doctor Appointment Management (Completed)
 - [ ] **Module 5**: Staff Management
 - [ ] **Module 6**: Room Management
 - [ ] **Module 7**: Ward Management

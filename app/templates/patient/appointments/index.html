@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}My Appointments{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb & Header -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">My Appointments</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h1 class="h3 mb-1 text-primary fw-bold">
+                <i class="bi bi-calendar2-check me-2"></i>My Appointments
+            </h1>
+            <p class="text-muted mb-0">Track and manage your scheduled clinical consultations with doctors.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('patient.request_appointment') }}" class="btn btn-primary shadow-sm">
+                <i class="bi bi-plus-circle me-1"></i> Book New Appointment
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 bg-white text-center p-3">
+                <span class="text-muted small text-uppercase fw-semibold">Total Booked</span>
+                <span class="fs-4 fw-bold text-dark mt-1">{{ stats.total }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 bg-white text-center p-3 border-start border-warning border-4">
+                <span class="text-warning small text-uppercase fw-semibold">Pending</span>
+                <span class="fs-4 fw-bold text-warning mt-1">{{ stats.pending }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 bg-white text-center p-3 border-start border-success border-4">
+                <span class="text-success small text-uppercase fw-semibold">Approved</span>
+                <span class="fs-4 fw-bold text-success mt-1">{{ stats.approved }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 bg-white text-center p-3 border-start border-info border-4">
+                <span class="text-info small text-uppercase fw-semibold">Completed</span>
+                <span class="fs-4 fw-bold text-info mt-1">{{ stats.completed }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="fw-semibold text-muted me-2"><i class="bi bi-funnel me-1"></i>Filter by Status:</span>
+                <a href="{{ url_for('patient.list_appointments') }}" class="btn btn-sm {% if not current_status %}btn-dark{% else %}btn-outline-secondary{% endif %} rounded-pill">
+                    All ({{ stats.total }})
+                </a>
+                {% for st in all_statuses %}
+                <a href="{{ url_for('patient.list_appointments', status=st) }}" class="btn btn-sm {% if current_status == st %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill">
+                    {{ st }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Appointments List -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h5 class="card-title mb-0 fw-bold">Consultation History & Schedule</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if appointments %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#ID</th>
+                            <th>Doctor & Specialization</th>
+                            <th>Date & Time</th>
+                            <th>Reason for Visit</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appt in appointments %}
+                        <tr>
+                            <td class="fw-bold text-muted">#{{ appt.appointment_id }}</td>
+                            <td>
+                                <div class="fw-semibold text-dark">Dr. {{ appt.doctor_name }}</div>
+                                <span class="badge bg-light text-primary border">{{ appt.doctor_specialization }}</span>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">{{ appt.formatted_date }}</div>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ appt.formatted_time }}</small>
+                            </td>
+                            <td>
+                                <span class="text-truncate d-inline-block" style="max-width: 260px;" title="{{ appt.reason_for_visit }}">
+                                    {{ appt.reason_for_visit }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ appt.status_badge_class }} px-2 py-1 rounded-pill">
+                                    {{ appt.status }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('patient.view_appointment', appointment_id=appt.appointment_id) }}" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                                {% if appt.status in ['Pending', 'Approved'] %}
+                                <form action="{{ url_for('patient.cancel_appointment', appointment_id=appt.appointment_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="reason" value="Cancelled by patient request.">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-x-circle"></i> Cancel
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-x display-4 text-muted"></i>
+                <h5 class="mt-3 text-muted">No appointments found</h5>
+                <p class="text-muted">You have no scheduled appointments matching your criteria.</p>
+                <a href="{{ url_for('patient.request_appointment') }}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-circle me-1"></i> Request Consultation
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

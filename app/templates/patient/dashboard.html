@@ -58,14 +58,17 @@
             <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
                     <div class="p-3 bg-info bg-opacity-10 text-info rounded-3 me-3">
-                        <i class="bi bi-calendar-plus fs-3"></i>
+                        <i class="bi bi-calendar-check fs-3"></i>
                     </div>
                     <div>
                         <h6 class="text-muted mb-0">Appointments</h6>
-                        <h5 class="fw-bold mb-0">Consultations</h5>
+                        <h5 class="fw-bold mb-0 text-info">{{ stats.get('total', 0) }} Total</h5>
                     </div>
                 </div>
-                <p class="card-text text-muted small">Schedule visits with doctors (Module 4).</p>
+                <div class="d-grid gap-1 mt-2">
+                    <a href="{{ url_for('patient.list_appointments') }}" class="btn btn-sm btn-outline-info fw-semibold">View All ({{ stats.get('pending', 0) }} Pending)</a>
+                    <a href="{{ url_for('patient.request_appointment') }}" class="btn btn-sm btn-primary fw-semibold mt-1"><i class="bi bi-plus me-1"></i>Book New</a>
+                </div>
             </div>
         </div>
     </div>
@@ -104,6 +107,52 @@
         </div>
     </div>
 </div>
+
+<!-- Recent Appointments Section -->
+{% if recent_appointments %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-calendar2-week me-2 text-primary"></i> Recent Scheduled Consultations</h5>
+                <a href="{{ url_for('patient.list_appointments') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Doctor</th>
+                            <th>Date & Time</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appt in recent_appointments %}
+                        <tr>
+                            <td>
+                                <span class="fw-semibold text-dark">Dr. {{ appt.doctor_name }}</span>
+                                <small class="text-muted d-block">{{ appt.doctor_specialization }}</small>
+                            </td>
+                            <td>
+                                <div>{{ appt.formatted_date }}</div>
+                                <small class="text-muted">{{ appt.formatted_time }}</small>
+                            </td>
+                            <td><span class="text-truncate d-inline-block" style="max-width: 200px;">{{ appt.reason_for_visit }}</span></td>
+                            <td><span class="badge bg-{{ appt.status_badge_class }} rounded-pill">{{ appt.status }}</span></td>
+                            <td class="text-end">
+                                <a href="{{ url_for('patient.view_appointment', appointment_id=appt.appointment_id) }}" class="btn btn-sm btn-outline-secondary">Details</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Profile Summary -->
 <div class="row">

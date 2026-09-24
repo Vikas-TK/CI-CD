@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Appointment Details #{{ appointment.appointment_id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.list_appointments') }}">My Appointments</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Appointment #{{ appointment.appointment_id }}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-secondary text-uppercase me-2">Consultation Record</span>
+                        <h4 class="mb-0 d-inline fw-bold">Appointment #{{ appointment.appointment_id }}</h4>
+                    </div>
+                    <div>
+                        <span class="badge bg-{{ appointment.status_badge_class }} fs-6 px-3 py-2 rounded-pill">
+                            {{ appointment.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4 mb-4">
+                        <!-- Doctor Info -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded h-100 border">
+                                <h6 class="text-primary fw-bold mb-3"><i class="bi bi-person-badge me-2"></i>Doctor Information</h6>
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Attending Physician</small>
+                                    <span class="fw-bold text-dark fs-5">Dr. {{ appointment.doctor_name }}</span>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Specialization</small>
+                                    <span class="badge bg-primary">{{ appointment.doctor_specialization }}</span>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block">Department</small>
+                                    <span>{{ appointment.doctor_specialization }} Department</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Schedule Info -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded h-100 border">
+                                <h6 class="text-primary fw-bold mb-3"><i class="bi bi-clock-history me-2"></i>Schedule Details</h6>
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Appointment Date</small>
+                                    <span class="fw-bold text-dark fs-5">{{ appointment.formatted_date }}</span>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Scheduled Time</small>
+                                    <span class="fw-semibold text-dark"><i class="bi bi-clock me-1"></i>{{ appointment.formatted_time }}</span>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block">Created On</small>
+                                    <small class="text-muted">{{ appointment.created_at.strftime("%b %d, %Y at %I:%M %p") }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clinical Reason -->
+                    <div class="mb-4">
+                        <label class="fw-bold text-dark mb-1">Reason for Visit / Clinical Symptoms</label>
+                        <div class="p-3 bg-white border rounded">
+                            <p class="mb-0 text-secondary" style="white-space: pre-wrap;">{{ appointment.reason_for_visit }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Doctor / Clinical Review Notes -->
+                    {% if appointment.review_notes %}
+                    <div class="mb-4">
+                        <label class="fw-bold text-dark mb-1"><i class="bi bi-journal-medical me-1"></i>Clinical / Status Review Notes</label>
+                        <div class="p-3 bg-light border border-info rounded">
+                            <p class="mb-0 text-dark" style="white-space: pre-wrap;">{{ appointment.review_notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('patient.list_appointments') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Appointments
+                        </a>
+                        {% if appointment.status in ['Pending', 'Approved'] %}
+                        <form action="{{ url_for('patient.cancel_appointment', appointment_id=appointment.appointment_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="reason" value="Cancelled by patient via portal.">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-x-circle me-1"></i> Cancel Appointment
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

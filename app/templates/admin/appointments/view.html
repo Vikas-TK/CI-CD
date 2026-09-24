@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Appointment #{{ appointment.appointment_id }} - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% if is_staff %}{{ url_for('staff.dashboard') }}{% else %}{{ url_for('admin.dashboard') }}{% endif %}">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% if is_staff %}{{ url_for('staff.appointments_list') }}{% else %}{{ url_for('admin.appointments_list') }}{% endif %}">Appointments</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Appointment #{{ appointment.appointment_id }}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-secondary text-uppercase me-2">Consultation Record</span>
+                        <h4 class="mb-0 d-inline fw-bold">Appointment #{{ appointment.appointment_id }}</h4>
+                    </div>
+                    <div>
+                        <span class="badge bg-{{ appointment.status_badge_class }} fs-6 px-3 py-2 rounded-pill">
+                            {{ appointment.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4 mb-4">
+                        <!-- Patient Card -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded border h-100">
+                                <h6 class="text-primary fw-bold mb-3"><i class="bi bi-person-circle me-2"></i>Patient Profile</h6>
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Full Name</small>
+                                    <span class="fw-bold text-dark fs-5">{{ appointment.patient_name }}</span>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Age / Gender</small>
+                                        <span class="fw-semibold">{{ appointment.patient.age }} yrs / {{ appointment.patient.gender }}</span>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Blood Group</small>
+                                        <span class="badge bg-danger">{{ appointment.patient.blood_group }}</span>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Contact Phone</small>
+                                    <span>{{ appointment.patient.phone_number }}</span>
+                                </div>
+                                <div>
+                                    <a href="{% if is_staff %}{{ url_for('staff.patient_details', patient_id=appointment.patient_id) }}{% else %}{{ url_for('admin.patient_details', patient_id=appointment.patient_id) }}{% endif %}" class="btn btn-sm btn-outline-primary mt-2">
+                                        <i class="bi bi-person-lines-fill me-1"></i> View Full Patient Profile
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Doctor Card -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded border h-100">
+                                <h6 class="text-primary fw-bold mb-3"><i class="bi bi-person-badge me-2"></i>Assigned Physician</h6>
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Doctor Name</small>
+                                    <span class="fw-bold text-dark fs-5">Dr. {{ appointment.doctor_name }}</span>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Specialization</small>
+                                    <span class="badge bg-primary">{{ appointment.doctor_specialization }}</span>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Doctor Phone</small>
+                                    <span>{{ appointment.doctor.phone_number }}</span>
+                                </div>
+                                <div>
+                                    {% if not is_staff %}
+                                    <a href="{{ url_for('admin.doctor_details', doctor_id=appointment.doctor_id) }}" class="btn btn-sm btn-outline-primary mt-2">
+                                        <i class="bi bi-person-badge me-1"></i> View Doctor Profile
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Schedule & Metadata -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-white border rounded">
+                                <small class="text-muted d-block">Consultation Date</small>
+                                <span class="fw-bold fs-6 text-dark">{{ appointment.formatted_date }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-white border rounded">
+                                <small class="text-muted d-block">Scheduled Time</small>
+                                <span class="fw-bold fs-6 text-dark"><i class="bi bi-clock me-1"></i>{{ appointment.formatted_time }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-white border rounded">
+                                <small class="text-muted d-block">Requested At</small>
+                                <small class="text-muted">{{ appointment.created_at.strftime("%b %d, %Y at %I:%M %p") }}</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Symptoms Description -->
+                    <div class="mb-4">
+                        <label class="fw-bold text-dark mb-1">Reason for Visit / Patient Complaint</label>
+                        <div class="p-3 bg-white border rounded">
+                            <p class="mb-0 text-secondary" style="white-space: pre-wrap;">{{ appointment.reason_for_visit }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Clinical / Status Notes -->
+                    {% if appointment.review_notes %}
+                    <div class="mb-4">
+                        <label class="fw-bold text-dark mb-1"><i class="bi bi-journal-text me-1"></i>Review / Clinical Notes</label>
+                        <div class="p-3 bg-light border border-info rounded">
+                            <p class="mb-0 text-dark" style="white-space: pre-wrap;">{{ appointment.review_notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Status Transition Controls -->
+                    {% if appointment.status in ['Pending', 'Approved'] %}
+                    <div class="card border-primary border-opacity-25 bg-light mb-3">
+                        <div class="card-header bg-primary text-white py-2">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-gear-wide-connected me-1"></i> Hospital Status Control</h6>
+                        </div>
+                        <div class="card-body p-3">
+                            <form action="{% if is_staff %}{{ url_for('staff.appointment_update_status', appointment_id=appointment.appointment_id) }}{% else %}{{ url_for('admin.appointment_update_status', appointment_id=appointment.appointment_id) }}{% endif %}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Transition Status Decision <span class="text-danger">*</span></label>
+                                    <div class="d-flex flex-wrap gap-3">
+                                        {% if appointment.status == 'Pending' %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="status" id="admApprove" value="Approved" checked>
+                                            <label class="form-check-label fw-bold text-success" for="admApprove">
+                                                <i class="bi bi-check-circle me-1"></i> Approve
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="status" id="admReject" value="Rejected">
+                                            <label class="form-check-label fw-bold text-danger" for="admReject">
+                                                <i class="bi bi-x-circle me-1"></i> Reject
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="status" id="admCancel" value="Cancelled">
+                                            <label class="form-check-label fw-bold text-secondary" for="admCancel">
+                                                <i class="bi bi-slash-circle me-1"></i> Cancel
+                                            </label>
+                                        </div>
+                                        {% elif appointment.status == 'Approved' %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="status" id="admComplete" value="Completed" checked>
+                                            <label class="form-check-label fw-bold text-info" for="admComplete">
+                                                <i class="bi bi-check2-all me-1"></i> Mark Completed
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="status" id="admCancelAppr" value="Cancelled">
+                                            <label class="form-check-label fw-bold text-secondary" for="admCancelAppr">
+                                                <i class="bi bi-slash-circle me-1"></i> Cancel
+                                            </label>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="adm_review_notes" class="form-label fw-semibold">Review / Administrative Notes</label>
+                                    <textarea class="form-control" id="adm_review_notes" name="review_notes" rows="3" 
+                                              placeholder="Enter reason for decision, administrative notes, or clinical instructions..."></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check2-square me-1"></i> Update Status
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-secondary d-flex align-items-center mb-3">
+                        <i class="bi bi-lock-fill me-2 fs-5"></i>
+                        <div>
+                            This appointment has concluded with status <strong>{{ appointment.status }}</strong>.
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Back Navigation -->
+                    <div class="pt-3 border-top">
+                        <a href="{% if is_staff %}{{ url_for('staff.appointments_list') }}{% else %}{{ url_for('admin.appointments_list') }}{% endif %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Appointment Registry
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

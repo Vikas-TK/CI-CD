@@ -2,9 +2,11 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import current_user
 from app.models.user import User, Role
 from app.models.patient import Patient
+from app.models.appointment import AppointmentStatus
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
+from app.services.appointment_service import AppointmentService
 from app.utils.decorators import admin_required
 
 
@@ -14,7 +16,6 @@ admin_bp = Blueprint("admin", __name__)
 @admin_bp.route("/dashboard")
 @admin_required
 def dashboard():
-
     """Administrator Dashboard with operational overview metrics."""
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
@@ -24,6 +25,7 @@ def dashboard():
     total_pharmacy = User.query.filter_by(role=Role.PHARMACY_MANAGER, is_active=True).count()
     total_patient_profiles = Patient.query.count()
 
+    appointment_stats = AppointmentService.get_hospital_appointment_stats()
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
 
     return render_template(
@@ -35,6 +37,7 @@ def dashboard():
         total_patients=total_patients,
         total_pharmacy=total_pharmacy,
         total_patient_profiles=total_patient_profiles,
+        appointment_stats=appointment_stats,
         recent_users=recent_users
     )
 
@@ -384,3 +387,85 @@ def doctor_update(doctor_id):
 
     flash(f"Doctor profile for Dr. {updated_doc.full_name} updated successfully.", "success")
     return redirect(url_for("admin.doctor_details", doctor_id=doctor.doctor_id))
+
+
+# ---------------------------------------------------------
+# APPOINTMENT MANAGEMENT (MODULE 4)
+# ---------------------------------------------------------
+
+@admin_bp.route("/appointments", methods=["GET"])
+@admin_required
+def appointments_list():
+    """Administrator view of all hospital appointments with filtering and search."""
+    search_query = request.args.get("search", "").strip()
+    status_filter = request.args.get("status", "").strip()
+    date_filter = request.args.get("date", "").strip()
+    doctor_filter = request.args.get("doctor_id", type=int)
+    patient_filter = request.args.get("patient_id", type=int)
+    page = request.args.get("page", 1, type=int)
+
+    pagination = AppointmentService.get_all_appointments(
+        status=status_filter or None,
+        date_filter=date_filter or None,
+        doctor_id=doctor_filter,
+        patient_id=patient_filter,
+        search=search_query or None,
+        page=page,
+        per_page=12
+    )
+    appointments = pagination.items
+    stats = AppointmentService.get_hospital_appointment_stats()
+    doctors = DoctorService.list_doctors().all()
+
+    return render_template(
+        "admin/appointments/index.html",
+        appointments=appointments,
+        pagination=pagination,
+        stats=stats,
+        doctors=doctors,
+        search_query=search_query,
+        current_status=status_filter,
+        current_date=date_filter,
+        current_doctor_id=doctor_filter,
+        all_statuses=AppointmentStatus.ALL_STATUSES
+    )
+
+
+@admin_bp.route("/appointments/<int:appointment_id>", methods=["GET"])
+@admin_required
+def appointment_details(appointment_id):
+    """Administrator view of specific appointment details."""
+    appointment = AppointmentService.get_appointment_by_id(appointment_id)
+    if not appointment:
+        flash("Appointment record not found.", "danger")
+        return redirect(url_for("admin.appointments_list"))
+
+    return render_template("admin/appointments/view.html", appointment=appointment)
+
+
+@admin_bp.route("/appointments/<int:appointment_id>/status", methods=["POST"])
+@admin_required
+def appointment_update_status(appointment_id):
+    """Administrator update appointment status (Approved, Rejected, Cancelled, Completed)."""
+    appointment = AppointmentService.get_appointment_by_id(appointment_id)
+    if not appointment:
+        flash("Appointment record not found.", "danger")
+        return redirect(url_for("admin.appointments_list"))
+
+    new_status = request.form.get("status", "").strip()
+    review_notes = request.form.get("review_notes", "").strip()
+
+    updated, errors = AppointmentService.update_appointment_status(
+        appointment_id=appointment_id,
+        new_status=new_status,
+        user=current_user,
+        review_notes=review_notes
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+    else:
+        flash(f"Appointment #{appointment_id} updated to '{new_status}'.", "success")
+
+    return redirect(url_for("admin.appointment_details", appointment_id=appointment_id))
