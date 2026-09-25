@@ -144,3 +144,15 @@ def doctor_profile(doctor_user):
         specialization="Cardiologist"
     )
     return doctor
+
+
+@pytest.fixture
+def staff_profile(staff_user):
+    """Creates a Staff profile associated with staff_user."""
+    from app.services.staff_service import StaffService
+    staff, _ = StaffService.create_staff_profile(
+        user_id=staff_user.user_id,
+        designation="Nurse",
+        aadhaar_number="987654321098"
+    )
+    return staff

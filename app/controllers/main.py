@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, jsonify, request
 from app.services.doctor_service import DoctorService
+from app.services.staff_service import StaffService
 
 main_bp = Blueprint("main", __name__)
 
@@ -20,7 +21,7 @@ def health_check():
         "status": "healthy",
         "service": "Hospital Management System",
         "version": "1.0.0",
-        "module": "Module 3 - Doctor Management"
+        "module": "Module 5 - Staff Management"
     }), 200
 
 
@@ -47,4 +48,29 @@ def doctor_directory():
         search_query=search_query,
         specialization_filter=specialization_filter,
         specializations=DoctorService.VALID_SPECIALIZATIONS
+    )
+
+
+@main_bp.route("/staff", methods=["GET"])
+def staff_directory():
+    """Hospital Staff Directory for authorized viewing with designation filter and search."""
+    search_query = request.args.get("search", "").strip()
+    designation_filter = request.args.get("designation", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    query = StaffService.list_staff(
+        search_query=search_query,
+        designation_filter=designation_filter,
+        status_filter="active"
+    )
+    pagination = query.paginate(page=page, per_page=9, error_out=False)
+    staff_members = pagination.items
+
+    return render_template(
+        "staff/directory.html",
+        staff_members=staff_members,
+        pagination=pagination,
+        search_query=search_query,
+        designation_filter=designation_filter,
+        designations=StaffService.VALID_DESIGNATIONS
     )

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ staff.full_name }} - Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.staff_list') }}">Staff</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.staff_details', staff_id=staff.staff_id) }}">{{ staff.full_name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            </ol>
+        </nav>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="card-title fw-bold mb-0">
+                    <i class="bi bi-pencil-square me-2"></i>Update Staff Profile
+                </h4>
+                <small class="text-white-50">Modify designation, contact details, and identification for {{ staff.full_name }}.</small>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('admin.staff_update', staff_id=staff.staff_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Protected Identifiers Card -->
+                    <div class="card bg-light border-0 mb-4 p-3">
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <small class="text-muted d-block">Staff ID</small>
+                                <span class="fw-bold text-primary">#STF-{{ "%04d"|format(staff.staff_id) }}</span>
+                            </div>
+                            <div class="col-sm-6">
+                                <small class="text-muted d-block">Staff Account Name</small>
+                                <span class="fw-bold text-dark">{{ staff.full_name }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-secondary mb-3 border-bottom pb-2">
+                        <i class="bi bi-briefcase text-primary me-2"></i>Designation & Contact Information
+                    </h5>
+
+                    <div class="mb-3">
+                        <label for="designation" class="form-label fw-semibold">Designation <span class="text-danger">*</span></label>
+                        <select class="form-select" id="designation" name="designation" required>
+                            {% for desig in designations %}
+                                <option value="{{ desig }}" {% if (form_data and form_data.get('designation') == desig) or (not form_data and staff.designation == desig) %}selected{% endif %}>
+                                    {{ desig }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Job role in hospital operations.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phone_number" class="form-label fw-semibold">Phone Number</label>
+                        <input type="text" class="form-control" id="phone_number" name="phone_number" 
+                               value="{{ form_data.get('phone_number', staff.phone_number) if form_data else staff.phone_number }}" 
+                               placeholder="+1000000003">
+                        <small class="text-muted">Updates the primary telephone number associated with this staff member's account.</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="aadhaar_number" class="form-label fw-semibold">Aadhaar Number (12 Digits)</label>
+                        <input type="text" class="form-control font-monospace" id="aadhaar_number" name="aadhaar_number" 
+                               value="{{ form_data.get('aadhaar_number', staff.aadhaar_number) if form_data else (staff.aadhaar_number or '') }}" 
+                               placeholder="123456789012" maxlength="14">
+                        <small class="text-muted">12-digit Indian national identity number.</small>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('admin.staff_details', staff_id=staff.staff_id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-save me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

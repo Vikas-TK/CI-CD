@@ -46,6 +46,11 @@
                             <i class="bi bi-person-badge me-1"></i> Doctors
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'main.staff_directory' %}active{% endif %}" href="{{ url_for('main.staff_directory') }}">
+                            <i class="bi bi-people me-1"></i> Staff
+                        </a>
+                    </li>
                     {% if current_user.is_authenticated %}
                         {% if current_user.is_admin %}
                             <li class="nav-item">
@@ -61,6 +66,11 @@
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint and request.endpoint.startswith('admin.doctor') %}active{% endif %}" href="{{ url_for('admin.doctors_list') }}">
                                     <i class="bi bi-person-badge-fill me-1"></i> Doctor Management
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('admin.staff') %}active{% endif %}" href="{{ url_for('admin.staff_list') }}">
+                                    <i class="bi bi-person-workspace me-1"></i> Staff Management
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -98,6 +108,11 @@
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'staff.dashboard' %}active{% endif %}" href="{{ url_for('staff.dashboard') }}">
                                     <i class="bi bi-briefcase me-1"></i> Staff Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('staff.profile') %}active{% endif %}" href="{{ url_for('staff.profile') }}">
+                                    <i class="bi bi-person-vcard me-1"></i> My Profile
                                 </a>
                             </li>
                             <li class="nav-item">

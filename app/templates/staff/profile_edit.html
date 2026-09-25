@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Staff Profile - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('staff.dashboard') }}">Staff Portal</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('staff.profile') }}">My Profile</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            </ol>
+        </nav>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="card-title fw-bold mb-0">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Staff Profile
+                </h4>
+                <small class="text-white-50">Update your contact telephone number and identification details.</small>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('staff.profile_update') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Protected Identifiers Card -->
+                    <div class="card bg-light border-0 mb-4 p-3">
+                        <div class="row g-2">
+                            <div class="col-sm-4">
+                                <small class="text-muted d-block">Staff ID</small>
+                                <span class="fw-bold text-primary">#STF-{{ "%04d"|format(staff.staff_id) }}</span>
+                            </div>
+                            <div class="col-sm-4">
+                                <small class="text-muted d-block">Staff Member</small>
+                                <span class="fw-bold text-dark">{{ staff.full_name }}</span>
+                            </div>
+                            <div class="col-sm-4">
+                                <small class="text-muted d-block">Designation (Admin Managed)</small>
+                                <span class="badge bg-info text-dark">{{ staff.designation }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-secondary mb-3 border-bottom pb-2">
+                        <i class="bi bi-person-lines-fill text-primary me-2"></i>Contact & Identification Details
+                    </h5>
+
+                    <div class="mb-3">
+                        <label for="phone_number" class="form-label fw-semibold">Contact Phone Number</label>
+                        <input type="text" class="form-control" id="phone_number" name="phone_number" 
+                               value="{{ form_data.get('phone_number', staff.phone_number) if form_data else staff.phone_number }}" 
+                               placeholder="+1000000003">
+                        <small class="text-muted">Primary phone number on record for hospital administration reachability.</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="aadhaar_number" class="form-label fw-semibold">Aadhaar Number (12 Digits)</label>
+                        <input type="text" class="form-control font-monospace" id="aadhaar_number" name="aadhaar_number" 
+                               value="{{ form_data.get('aadhaar_number', staff.aadhaar_number) if form_data else (staff.aadhaar_number or '') }}" 
+                               placeholder="123456789012" maxlength="14">
+                        <small class="text-muted">12-digit Indian national identity number. Displayed masked across hospital records.</small>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('staff.profile') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-save me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

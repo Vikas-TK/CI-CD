@@ -1,7 +1,7 @@
 # Hospital Management System – Web Application
 
 [![Continuous Integration (CI)](https://github.com/Vikas-TK/CI-CD/actions/workflows/ci.yml/badge.svg)](https://github.com/Vikas-TK/CI-CD/actions/workflows/ci.yml)
-[![Continuous Deployment (CD - Staging)](https://github.com/Vikas-TK/CI-CD/actions/workflows/cd-staging.yml/badge.svg)](https://github.com/Vikas-TK/CI-CD/actions/workflows/cd-staging.yml)
+[![Continuous Deployment (CD)](https://github.com/Vikas-TK/CI-CD/actions/workflows/cd.yml/badge.svg)](https://github.com/Vikas-TK/CI-CD/actions/workflows/cd.yml)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue.svg)](https://www.python.org/)
 [![Framework](https://img.shields.io/badge/framework-Flask%203.x-green.svg)](https://flask.palletsprojects.com/)
 [![Database](https://img.shields.io/badge/database-MySQL%208.0-orange.svg)](https://www.mysql.com/)
@@ -12,99 +12,41 @@
 
 ## 1. Project Overview & Scope
 
-The **Hospital Management System (MediCare HMS)** is a web-based enterprise application built to streamline and unify healthcare operations across hospital departments. The system transitions an initial modular Python console design into a modern, web application featuring:
+The **Hospital Management System (MediCare HMS)** is a web-based enterprise application built to streamline and unify healthcare operations across hospital departments. The system transitions an initial modular Python console design into a modern web application featuring:
 
 - **Strict Server-Side Role-Based Access Control (RBAC)** across 5 distinct hospital personas: **Administrator**, **Doctor**, **Staff**, **Patient**, and **Pharmacy Manager**.
 - **Secure Authentication and Session Lifecycle Management** utilizing Flask-Login, Werkzeug password hashing (scrypt), and CSRF protection.
-- **Enterprise CI/CD Automation** powered exclusively by **GitHub Actions** (no Jenkins), integrating linting, automated testing with JUnit XML reporting, SonarCloud quality gates, and containerized staging deployment.
+- **Enterprise CI/CD Automation** powered exclusively by **GitHub Actions** (no Jenkins), integrating linting, automated testing with JUnit XML reporting, SonarCloud quality gates, and containerized staging/production deployment.
 
 ---
 
----
+## 2. Implemented Modules
 
-## 2. Module 1: User Authentication & Role Management
+### 2.1 Module 1: User Authentication & Role Management
+- **Patient Self-Registration**: Public portal registration strictly assigns the `PATIENT` role with input validation for email format, phone syntax, and password matching.
+- **Multi-Identifier Login**: Authenticates via either **Email Address** or **Phone Number** against secure Werkzeug password hashes.
+- **Session Management**: Session persistence, remember-me options, timeout controls, and logout.
+- **Role-Based Redirection & Protection**: Dedicated dashboards for Administrator, Doctor, Staff, Patient, and Pharmacy Manager.
+- **Privileged Account Creation**: Privileged accounts (`DOCTOR`, `STAFF`, `PHARMACY_MANAGER`, `ADMINISTRATOR`) can only be provisioned by authenticated Administrators or initialized via the secure CLI command.
+- **Administrator User Management**: Search/filter users, toggle active status with self-deactivation protection, and modify roles with self-demotion protection.
+- **Health Check Endpoint**: `/health` JSON probe for CI/CD and container monitoring.
 
-Module 1 establishes the authentication backbone and authorization infrastructure for all subsequent hospital modules.
+### 2.2 Module 2: Patient Management
+- **1-to-1 User Profile Association**: Unique link to `PATIENT` user (`users.user_id`), keeping core identification normalized in `users`.
+- **Self-Service Profile Lifecycle**: Profile completion prompt and editing of allowed demographic fields.
+- **Privacy & Aadhaar Masking**: Aadhaar numbers (12 digits) masked in standard format `XXXX-XXXX-1234` across UI views.
+- **Role-Based Patient Directory**: Admin management, Doctor read-only consultation directory, Staff patient intake registry.
 
-### Key Responsibilities:
-1. **Patient Self-Registration**: Public portal registration strictly assigns the `PATIENT` role. Form input validation checks email format, international phone syntax, and enforces password matching.
-2. **Multi-Identifier Login**: Authenticates via either **Email Address** or **Phone Number** against secure Werkzeug password hashes.
-3. **Session Management**: Session persistence, remember-me options, timeout controls, and logout.
-4. **Role-Based Redirection & Protection**:
-   - `/admin/dashboard` & `/admin/users` (Administrator only)
-   - `/doctor/dashboard` (Doctor only)
-   - `/staff/dashboard` (Staff only)
-   - `/patient/dashboard` (Patient only)
-   - `/pharmacy/dashboard` (Pharmacy Manager only)
-5. **Privileged Account Creation**: Strict lockdown preventing public registration of privileged accounts. Privileged users (`DOCTOR`, `STAFF`, `PHARMACY_MANAGER`, `ADMINISTRATOR`) can only be provisioned by authenticated Administrators or initialized via the secure CLI command.
-6. **Administrator User Management**:
-   - View, search, and filter all registered accounts.
-   - Activate and deactivate user access with safeguard against self-deactivation.
-   - Modify assigned user roles with safeguard against sole administrator demotion.
-7. **Health Probe**: `/health` endpoint returning JSON metadata for container and CI/CD uptime monitoring.
+### 2.3 Module 3: Doctor Management
+- **Controlled Account Provisioning**: Provisioning restricted to Administrator or CLI commands; public doctor registration blocked.
+- **1-to-1 Doctor Profile Association**: Links to `DOCTOR` user (`users.user_id`) with medical specialization tracking.
+- **Doctor Self-Service**: Doctor profile view (`/doctor/profile`) and specialization/phone update (`/doctor/profile/edit`).
+- **Hospital Doctor Directory**: Public/hospital-wide search (`/doctors`) by name and specialization filter.
 
----
-
----
-
-## 3. Module 2: Patient Management
-
-Module 2 implements comprehensive patient demographic and health profile management linked 1-to-1 with user accounts.
-
-### Key Responsibilities:
-1. **1-to-1 User Profile Association**: Each patient profile links uniquely to a `PATIENT` user (`users.user_id`), preventing duplicate profiles. Core identification data (name, email, phone) stays normalized in the `users` table.
-2. **Self-Service Profile Lifecycle**:
-   - First-time profile creation prompts on `/patient/dashboard` or `/patient/profile/complete`.
-   - Patients can view their full profile (`/patient/profile`) and update allowed demographic fields (`/patient/profile/edit`).
-   - Server-side immutability: patients cannot overwrite their `user_id` or tamper with core identifiers via patient profile endpoints.
-3. **Privacy & Aadhaar Masking**:
-   - Aadhaar numbers (12 digits) are masked in standard format `XXXX-XXXX-1234` across directory lists, doctor views, staff views, and admin views.
-   - Unmasked full Aadhaar is only visible when an authorized patient or admin accesses their dedicated edit form.
-4. **Role-Based Patient Directory Access**:
-   - **Administrators** (`/admin/patients`): Full patient directory with search (by Name, Email, Phone, or Patient ID), detailed view (`/admin/patients/<id>`), and full profile editing (`/admin/patients/<id>/edit`).
-   - **Doctors** (`/doctor/patients`): Read-only directory and read-only patient profile view for clinical consultations.
-   - **Hospital Staff** (`/staff/patients`): Read-only directory and patient profile view for intake verification and assistance.
-   - **Patients**: Strictly restricted to viewing and editing their own patient record.
-
----
-
-## 4. Module 3: Doctor Management
-
-Module 3 implements doctor clinical profiles and specialization management integrated with user accounts and hospital directories.
-
-### Key Responsibilities:
-1. **Controlled Account Provisioning**: Only authenticated Administrators or system CLI commands can provision `DOCTOR` accounts and link `Doctor` medical profiles. Public self-registration for doctor roles is strictly prohibited.
-2. **1-to-1 Doctor Profile Association**: Each doctor profile links uniquely to an authenticated `DOCTOR` user (`users.user_id`). Prevents duplicate profiles and enforces role validation.
-3. **Administrator Doctor Management**:
-   - Full doctor registry (`/admin/doctors`) with multi-parameter search (Name, Email, Phone, Specialization, Doctor ID) and specialization/status filters.
-   - Atomic doctor provisioning (`/admin/doctors/create`) to create credentials and attach specializations in a single workflow.
-   - Detailed doctor profile view (`/admin/doctors/<doctor_id>`) and profile updates (`/admin/doctors/<doctor_id>/edit`).
-   - Automatic detection of unprofiled doctor user accounts.
-4. **Doctor Self-Service**:
-   - Authenticated doctors view their own medical profile on `/doctor/profile`.
-   - Doctors update permitted fields (specialization, phone number) on `/doctor/profile/edit` with server-side protection preventing ID or role tampering.
-5. **Hospital Doctor Directory**:
-   - Public/hospital-wide directory (`/doctors`) allowing patients, staff, and visitors to search active doctors by name or filter by clinical specialization.
-
----
-
-## 5. Module 4: Patient–Doctor Appointment Management
-
-Module 4 implements clinical consultation scheduling, appointment lifecycle transitions, and conflict-free booking rules.
-
-### Key Responsibilities:
-1. **Normalized Association**: Links an appointment directly between a `Patient` (`patients.patient_id`) and a `Doctor` (`doctors.doctor_id`). No duplication of patient/doctor personal names, emails, or credentials.
-2. **Scheduling Rules & Validation**:
-   - Dates cannot be in the past (`appointment_date >= today`).
-   - Strict time format validation (`HH:MM`).
-   - Reason for visit is mandatory (3 to 1000 characters).
-   - Only active doctors with active user accounts can be booked.
-   - **Double-booking conflict prevention**: Prevents booking or approving duplicate appointments for the same doctor at the same date and time slot.
-3. **Strict Role-Based Lifecycle & State Transitions**:
-   - **Patient**: Can book appointments for themselves, view their consultation history, and cancel their own `Pending` or `Approved` appointments.
-   - **Doctor**: Can view assigned appointments, approve pending requests, reject pending requests with notes, and mark approved appointments as `Completed`.
-   - **Staff & Administrator**: Can view hospital-wide appointments with search and filters, and manage status transitions (`Approved`, `Rejected`, `Cancelled`, `Completed`).
-   - Terminal statuses (`Rejected`, `Cancelled`, `Completed`) cannot be reopened or altered.
+### 2.4 Module 4: Patient–Doctor Appointment Management
+- **Conflict-Free Scheduling Engine**: Double-booking prevention on same date and time slot for active appointments (`Pending`, `Approved`).
+- **Date & Time Validation**: Past dates and invalid time formats rejected.
+- **State Machine Transitions**: Patient request/cancel, Doctor approve/reject/complete with clinical notes, Admin/Staff hospital-wide management.
 
 ```mermaid
 stateDiagram-v2
@@ -119,39 +61,51 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
+### 2.5 Module 5: Staff Management
+- **Controlled Staff Provisioning**: Only authenticated Administrators can create/manage `STAFF` accounts and assign job designations (`Nurse`, `Receptionist`, `Lab Technician`, `Pharmacist Assistant`, `Ward Assistant`, `Accountant`, `Administrative Staff`, `Other`).
+- **1-to-1 Staff Profile Association**: Normalized `staff` table linked to `users.user_id` with role validation (`role == "STAFF"`).
+- **Administrator Staff Management**:
+  - Full staff directory (`/admin/staff`) with search (by Name, Email, Phone, Designation, Staff ID) and filters (Designation, Status).
+  - Provision staff account + profile atomically (`/admin/staff/create`) or link unprofiled staff user.
+  - Detailed staff profile view (`/admin/staff/<id>`) and edit interface (`/admin/staff/<id>/edit`).
+  - Unprofiled staff user alert banner.
+- **Staff Self-Service**:
+  - Authenticated staff members view their own profile on `/staff/profile`.
+  - Staff members update allowed fields (phone number, Aadhaar number) on `/staff/profile/edit`.
+  - Designation and Staff ID remain admin-controlled; role tampering and accessing other staff profiles is strictly blocked.
+- **Staff Directory**:
+  - Hospital-wide staff directory (`/staff`) with search and designation filters.
+  - Aadhaar numbers are **never exposed** in the general staff directory.
+
 ---
 
-## 6. Technology Stack
+## 3. Technology Stack
 
 - **Backend**: Python 3.10+, Flask 3.x, Flask-SQLAlchemy, Flask-Migrate, Flask-Login, Flask-WTF, Werkzeug.
 - **Frontend**: HTML5, CSS3, JavaScript (Fetch API), Bootstrap 5.3, Bootstrap Icons, Google Fonts (Inter).
-- **Database**: MySQL 8.0 (production & development), In-Memory SQLite (isolated testing).
+- **Database**: MySQL 8.0 (production & development), In-Memory SQLite (isolated automated testing).
 - **CI/CD & Code Quality**: GitHub Actions, SonarCloud / SonarQube, Flake8, pytest, pytest-cov.
-- **Containerization**: Docker, Docker Compose, Gunicorn WSGI.
+- **Containerization**: Docker, Gunicorn WSGI.
 
 ---
 
-## 6. Database Design
+## 4. Database Schema Design
 
-### 6.1 `users` Table
-Authentication credentials and account statuses are encapsulated in the `users` table:
-
+### 4.1 `users` Table
 | Column Name | Data Type | Constraints | Description |
 |---|---|---|---|
-| `user_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique identifier |
+| `user_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique user identifier |
 | `first_name` | `VARCHAR(50)` | `NOT NULL` | User's first name |
 | `last_name` | `VARCHAR(50)` | `NOT NULL` | User's last name |
 | `email` | `VARCHAR(120)` | `NOT NULL, UNIQUE, INDEX` | Login identifier & contact |
 | `phone_number` | `VARCHAR(20)` | `NOT NULL, UNIQUE, INDEX` | Login identifier & phone |
 | `password_hash`| `VARCHAR(255)` | `NOT NULL` | Werkzeug scrypt hash |
-| `role` | `VARCHAR(30)` | `NOT NULL, INDEX` | Role (`ADMINISTRATOR`, `DOCTOR`, `STAFF`, `PATIENT`, `PHARMACY_MANAGER`) |
+| `role` | `VARCHAR(30)` | `NOT NULL, INDEX` | `ADMINISTRATOR`, `DOCTOR`, `STAFF`, `PATIENT`, `PHARMACY_MANAGER` |
 | `is_active` | `BOOLEAN` | `NOT NULL, DEFAULT TRUE` | Active account status flag |
 | `created_at` | `DATETIME` | `NOT NULL` | Account creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
 
-### 6.2 `patients` Table
-Clinical demographics and medical intake data are encapsulated in the `patients` table:
-
+### 4.2 `patients` Table
 | Column Name | Data Type | Constraints | Description |
 |---|---|---|---|
 | `patient_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique patient profile ID |
@@ -160,16 +114,14 @@ Clinical demographics and medical intake data are encapsulated in the `patients`
 | `gender` | `VARCHAR(20)` | `NULLABLE` | Gender identity |
 | `aadhaar_number` | `VARCHAR(20)` | `NULLABLE` | 12-digit Indian national identity number |
 | `blood_group` | `VARCHAR(10)` | `NULLABLE` | Blood group (`A+`, `A-`, `B+`, `B-`, `AB+`, `AB-`, `O+`, `O-`) |
-| `disease_or_complaint` | `TEXT` | `NULLABLE` | Medical complaint / primary diagnosis notes |
-| `emergency_contact_name` | `VARCHAR(100)` | `NULLABLE` | Primary emergency contact name |
+| `disease_or_complaint` | `TEXT` | `NULLABLE` | Medical complaint / symptoms |
+| `emergency_contact_name` | `VARCHAR(100)` | `NULLABLE` | Emergency contact person name |
 | `emergency_contact_phone`| `VARCHAR(20)` | `NULLABLE` | Emergency contact phone number |
 | `address` | `VARCHAR(255)` | `NULLABLE` | Residential address |
 | `created_at` | `DATETIME` | `NOT NULL` | Record creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Record last updated timestamp (UTC) |
 
-### 7.3 `doctors` Table
-Medical specialization and clinical practice profile are encapsulated in the `doctors` table:
-
+### 4.3 `doctors` Table
 | Column Name | Data Type | Constraints | Description |
 |---|---|---|---|
 | `doctor_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique doctor profile ID |
@@ -178,9 +130,17 @@ Medical specialization and clinical practice profile are encapsulated in the `do
 | `created_at` | `DATETIME` | `NOT NULL` | Record creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Record last updated timestamp (UTC) |
 
-### 7.4 `appointments` Table
-Clinical consultations and scheduling lifecycle states are encapsulated in the `appointments` table:
+### 4.4 `staff` Table
+| Column Name | Data Type | Constraints | Description |
+|---|---|---|---|
+| `staff_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique staff profile ID |
+| `user_id` | `INTEGER` | `NOT NULL, UNIQUE, FOREIGN KEY (users.user_id) ON DELETE CASCADE` | 1-to-1 link to staff user |
+| `designation` | `VARCHAR(100)` | `NOT NULL` | Staff role (`Nurse`, `Receptionist`, etc.) |
+| `aadhaar_number` | `VARCHAR(20)` | `NULLABLE` | Optional 12-digit Indian national identity number |
+| `created_at` | `DATETIME` | `NOT NULL` | Record creation timestamp (UTC) |
+| `updated_at` | `DATETIME` | `NOT NULL` | Record last updated timestamp (UTC) |
 
+### 4.5 `appointments` Table
 | Column Name | Data Type | Constraints | Description |
 |---|---|---|---|
 | `appointment_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique appointment ID |
@@ -189,14 +149,78 @@ Clinical consultations and scheduling lifecycle states are encapsulated in the `
 | `appointment_date` | `DATE` | `NOT NULL, INDEX` | Scheduled consultation date |
 | `appointment_time` | `TIME` | `NOT NULL` | Scheduled consultation time |
 | `reason_for_visit` | `TEXT` | `NOT NULL` | Patient symptoms / consultation complaint |
-| `status` | `VARCHAR(20)` | `NOT NULL, INDEX, DEFAULT 'Pending'` | Lifecycle state (`Pending`, `Approved`, `Rejected`, `Cancelled`, `Completed`) |
+| `status` | `VARCHAR(20)` | `NOT NULL, INDEX, DEFAULT 'Pending'` | `Pending`, `Approved`, `Rejected`, `Cancelled`, `Completed` |
 | `review_notes` | `TEXT` | `NULLABLE` | Clinical remarks or cancellation reasons |
 | `created_at` | `DATETIME` | `NOT NULL` | Booking creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Status update timestamp (UTC) |
 
 ---
 
-## 8. Installation & Local Setup
+## 5. Application Route Access Matrix
+
+| Route Endpoint | HTTP Methods | Allowed Personas | Purpose |
+|---|---|---|---|
+| `/` | `GET` | Public | Landing page & hospital overview |
+| `/health` | `GET` | Public | Health probe for Docker/CI/CD |
+| `/doctors` | `GET` | Public | Medical specialists directory |
+| `/staff` | `GET` | Public | Hospital staff directory (no Aadhaar) |
+| `/auth/login` | `GET, POST` | Public | Multi-identifier user login |
+| `/auth/register` | `GET, POST` | Public | Patient self-registration |
+| `/auth/logout` | `GET` | Authenticated | Session invalidation |
+| `/admin/dashboard` | `GET` | Administrator | System KPI & overview |
+| `/admin/users` | `GET` | Administrator | User directory & filter |
+| `/admin/users/create` | `POST` | Administrator | Privileged account provisioning |
+| `/admin/users/<id>/toggle-status` | `POST` | Administrator | Account activation/deactivation |
+| `/admin/users/<id>/change-role` | `POST` | Administrator | User role modification |
+| `/admin/patients` | `GET` | Administrator | Patient management directory |
+| `/admin/patients/<id>` | `GET` | Administrator | Detailed patient profile view |
+| `/admin/patients/<id>/edit` | `GET` | Administrator | Patient edit form |
+| `/admin/patients/<id>/update` | `POST` | Administrator | Update patient details |
+| `/admin/doctors` | `GET` | Administrator | Doctor management directory |
+| `/admin/doctors/create` | `GET, POST` | Administrator | Provision doctor account + profile |
+| `/admin/doctors/<id>` | `GET` | Administrator | Detailed doctor profile view |
+| `/admin/doctors/<id>/edit` | `GET` | Administrator | Doctor edit form |
+| `/admin/doctors/<id>/update` | `POST` | Administrator | Update doctor profile |
+| `/admin/staff` | `GET` | Administrator | Staff management directory |
+| `/admin/staff/create` | `GET, POST` | Administrator | Provision staff account + profile |
+| `/admin/staff/<id>` | `GET` | Administrator | Detailed staff profile view |
+| `/admin/staff/<id>/edit` | `GET` | Administrator | Staff edit form |
+| `/admin/staff/<id>/update` | `POST` | Administrator | Update staff profile |
+| `/admin/appointments` | `GET` | Administrator | Hospital appointment schedule |
+| `/admin/appointments/<id>` | `GET` | Administrator | Appointment details |
+| `/admin/appointments/<id>/status` | `POST` | Administrator | Update appointment status |
+| `/doctor/dashboard` | `GET` | Doctor | Doctor operational portal |
+| `/doctor/profile` | `GET` | Doctor | Doctor self-service profile |
+| `/doctor/profile/edit` | `GET` | Doctor | Doctor self-service edit form |
+| `/doctor/profile/update` | `POST` | Doctor | Update specialization & phone |
+| `/doctor/patients` | `GET` | Doctor | Read-only clinical patient directory |
+| `/doctor/patients/<id>` | `GET` | Doctor | Read-only clinical patient chart |
+| `/doctor/appointments` | `GET` | Doctor | Doctor consultation queue |
+| `/doctor/appointments/<id>` | `GET` | Doctor | Consultation sheet & actions |
+| `/doctor/appointments/<id>/status` | `POST` | Doctor | Approve/Reject/Complete appointment |
+| `/staff/dashboard` | `GET` | Staff | Staff operational portal |
+| `/staff/profile` | `GET` | Staff | Staff self-service profile |
+| `/staff/profile/edit` | `GET` | Staff | Staff self-service edit form |
+| `/staff/profile/update` | `POST` | Staff | Update phone & Aadhaar |
+| `/staff/patients` | `GET` | Staff | Read-only patient intake directory |
+| `/staff/patients/<id>` | `GET` | Staff | Read-only patient record |
+| `/staff/appointments` | `GET` | Staff | Hospital appointment schedule |
+| `/staff/appointments/<id>` | `GET` | Staff | View appointment details |
+| `/staff/appointments/<id>/status` | `POST` | Staff | Update appointment status |
+| `/patient/dashboard` | `GET` | Patient | Patient portal & appointment overview |
+| `/patient/profile` | `GET` | Patient | Patient medical profile |
+| `/patient/profile/edit` | `GET` | Patient | Patient self-service edit form |
+| `/patient/profile/update` | `POST` | Patient | Update permitted demographic fields |
+| `/patient/profile/complete` | `GET, POST` | Patient | Initial profile onboarding |
+| `/patient/appointments` | `GET` | Patient | Personal appointment history |
+| `/patient/appointments/request` | `GET, POST` | Patient | Book consultation with doctor |
+| `/patient/appointments/<id>` | `GET` | Patient | View appointment status & notes |
+| `/patient/appointments/<id>/cancel` | `POST` | Patient | Cancel pending/approved appointment |
+| `/pharmacy/dashboard` | `GET` | Pharmacy Manager | Pharmacy inventory portal |
+
+---
+
+## 6. Installation & Local Setup
 
 ### 6.1 Prerequisites
 - Python 3.10+
@@ -248,204 +272,111 @@ DB_PASSWORD=your_mysql_password
 # Initialize tables
 flask init-db
 
-# Bootstrap an Administrator Account
-flask create-admin --email admin@hospital.local --password AdminPass123! --first-name System --last-name Admin --phone +1000000001
+# Bootstrap Initial Administrator
+flask create-admin --email admin@hospital.org --password AdminPassword123! --first-name System --last-name Admin --phone +1000000001
 
-# Seed sample users for all 5 roles (Optional)
+# Seed sample users, doctors, staff, patients, and appointments
 flask seed-data
 ```
 
-### 6.7 Run the Development Server
+### 6.7 Run Development Server
 ```bash
-python run.py
+flask run --port=5000 --debug
 ```
-Access the application at `http://127.0.0.1:5000`.
+Access the application at `http://localhost:5000`.
 
 ---
 
-## 7. Demo Accounts
+## 7. Automated Testing & Code Quality
 
-When seeded via `flask seed-data`, the following test accounts are available:
-
-| Role | Email Identifier | Phone Identifier | Password | Access Portal |
-|---|---|---|---|---|
-| **Administrator** | `admin@hospital.local` | `+1000000001` | `AdminPass123!` | `/admin/dashboard` & `/admin/users` |
-| **Doctor** | `doctor.jenkins@hospital.local` | `+1000000002` | `DoctorPass123!` | `/doctor/dashboard` |
-| **Hospital Staff** | `staff.mark@hospital.local` | `+1000000003` | `StaffPass123!` | `/staff/dashboard` |
-| **Patient** | `patient.alice@example.com` | `+1000000004` | `PatientPass123!` | `/patient/dashboard` |
-| **Pharmacy Manager**| `pharmacy.david@hospital.local` | `+1000000005`| `PharmacyPass123!`| `/pharmacy/dashboard` |
-
----
-
-## 8. Application Routes & Access Control Matrix
-
-The table below outlines all available routes, their required HTTP methods, access permissions, and functional purpose across Modules 1, 2, and 3:
-
-| Blueprint / Module | Endpoint Path | Method | Authorized Roles | Description |
-|---|---|---|---|---|
-| **Main** | `/` | `GET` | Public | Hospital landing page and hero section |
-| **Main** | `/health` | `GET` | Public | Health probe endpoint for Docker & CI/CD |
-| **Main** | `/doctors` | `GET` | Public / All | Public Doctor Directory with specialization search & filter |
-| **Auth** | `/auth/register` | `GET, POST` | Public (Anonymous) | Patient self-registration portal |
-| **Auth** | `/auth/login` | `GET, POST` | Public (Anonymous) | Multi-identifier login (Email or Phone) |
-| **Auth** | `/auth/logout` | `GET` | Authenticated (All) | Secure session termination and logout |
-| **Admin** | `/admin/dashboard` | `GET` | `ADMINISTRATOR` | Overview metrics and activity statistics |
-| **Admin** | `/admin/users` | `GET` | `ADMINISTRATOR` | User account management directory |
-| **Admin** | `/admin/users/create` | `POST` | `ADMINISTRATOR` | Privileged staff/doctor/admin provisioning |
-| **Admin** | `/admin/users/<id>/toggle-status` | `POST` | `ADMINISTRATOR` | Account activation / deactivation with self-protection |
-| **Admin** | `/admin/users/<id>/change-role` | `POST` | `ADMINISTRATOR` | Role reassignment with sole admin protection |
-| **Admin** | `/admin/patients` | `GET` | `ADMINISTRATOR` | Patient registry with search & pagination |
-| **Admin** | `/admin/patients/<id>` | `GET` | `ADMINISTRATOR` | Detailed clinical patient record view |
-| **Admin** | `/admin/patients/<id>/edit` | `GET` | `ADMINISTRATOR` | Edit patient demographic and medical profile |
-| **Admin** | `/admin/patients/<id>/update` | `POST` | `ADMINISTRATOR` | Submit patient profile modifications |
-| **Admin** | `/admin/doctors` | `GET` | `ADMINISTRATOR` | Doctor registry with specialization filters & unprofiled warnings |
-| **Admin** | `/admin/doctors/create` | `GET, POST` | `ADMINISTRATOR` | Atomic doctor user creation and specialization linkage |
-| **Admin** | `/admin/doctors/<id>` | `GET` | `ADMINISTRATOR` | Complete doctor profile and account view |
-| **Admin** | `/admin/doctors/<id>/edit` | `GET` | `ADMINISTRATOR` | Edit doctor specialization and contact info |
-| **Admin** | `/admin/doctors/<id>/update` | `POST` | `ADMINISTRATOR` | Submit doctor profile modifications |
-| **Doctor** | `/doctor/dashboard` | `GET` | `DOCTOR` | Doctor operational portal & clinical shortcuts |
-| **Doctor** | `/doctor/profile` | `GET` | `DOCTOR` | Doctor self-service profile page |
-| **Doctor** | `/doctor/profile/edit` | `GET` | `DOCTOR` | Edit doctor self-service profile |
-| **Doctor** | `/doctor/profile/update` | `POST` | `DOCTOR` | Submit self-service doctor profile updates |
-| **Doctor** | `/doctor/patients` | `GET` | `DOCTOR` | Read-only patient lookup for clinical consultations |
-| **Doctor** | `/doctor/patients/<id>` | `GET` | `DOCTOR` | Read-only detailed patient record |
-| **Staff** | `/staff/dashboard` | `GET` | `STAFF` | Hospital staff management portal |
-| **Staff** | `/staff/patients` | `GET` | `STAFF` | Read-only patient directory for admission/intake |
-| **Staff** | `/staff/patients/<id>` | `GET` | `STAFF` | Read-only detailed patient profile |
-| **Patient** | `/patient/dashboard` | `GET` | `PATIENT` | Patient portal with profile completion prompt |
-| **Patient** | `/patient/profile` | `GET` | `PATIENT` | View own demographic and medical record |
-| **Patient** | `/patient/profile/complete` | `GET, POST` | `PATIENT` | Initial patient demographic intake form |
-| **Patient** | `/patient/profile/edit` | `GET` | `PATIENT` | Patient self-service profile editor |
-| **Patient** | `/patient/profile/update` | `POST` | `PATIENT` | Submit permitted profile updates |
-| **Pharmacy** | `/pharmacy/dashboard` | `GET` | `PHARMACY_MANAGER` | Pharmacy manager portal |
-
-
-Pytest is configured for unit, integration, and security verification with JUnit XML and code coverage reports:
-
+### 7.1 Run Pytest Test Suite
 ```bash
-# Run test suite with verbose output
-pytest -v
+# Run all tests with coverage
+pytest -v --cov=app --cov-report=term-missing
 
-# Run with JUnit XML and coverage reports (matches CI)
-pytest -v --junitxml=test-results/junit.xml --cov=app --cov-report=xml:test-results/coverage.xml --cov-report=term-missing
+# Run with JUnit XML generation for CI
+pytest -v --junitxml=test-results/junit.xml --cov=app --cov-report=xml:test-results/coverage.xml
 ```
 
----
-
-## 9. Git Branching & Pull Request Workflow
-
-This repository strictly implements a Git branching model:
-
-```
-[main] (Production / Release)
-  ▲
-  │ (Pull Request after integration testing)
-[develop] (Integration Branch)
-  ▲
-  │ (Pull Request with automated CI checks)
-[feature/module-1-authentication] (Feature Branch)
-```
-
-1. **`main`**: Production-ready code.
-2. **`develop`**: Central integration branch for tested feature modules.
-3. **`feature/*`**: Dedicated branches for individual modules (e.g., `feature/module-1-authentication`, `feature/module-2-patient-management`).
-
-### Workflow Steps:
-1. Create and switch to a feature branch:
-   ```bash
-   git checkout develop
-   git checkout -b feature/module-1-authentication
-   ```
-2. Implement feature commits with descriptive messages.
-3. Push branch to GitHub:
-   ```bash
-   git push -u origin feature/module-1-authentication
-   ```
-4. Open a Pull Request into `develop`.
-5. GitHub Actions automatically executes the CI pipeline (linting, tests, SonarCloud).
-6. Merge Pull Request once all checks pass.
-
----
-
-## 10. Mandatory CI/CD Pipeline (GitHub Actions)
-
-Continuous Integration and Continuous Deployment are managed exclusively using **GitHub Actions**.
-
-### 10.1 CI Workflow (`.github/workflows/ci.yml`)
-Runs automatically on pushes to `main`, `develop`, and `feature/**` branches, and on Pull Requests targeting `main` or `develop`.
-
-```mermaid
-flowchart LR
-    A[Push / PR] --> B[Checkout Code]
-    B --> C[Setup Python 3.10 / 3.11]
-    C --> D[Install Dependencies]
-    D --> E[Flake8 Lint & Syntax Check]
-    E --> F[Pytest + JUnit XML + Coverage]
-    F --> G[Upload Test Artifacts]
-    G --> H[SonarCloud Code Analysis]
-    H --> I[Summary Status Report]
-```
-
-- **Stage 1: Checkout**: Retrieves full repository commit history.
-- **Stage 2: Python Setup**: Sets up matrix environments (Python 3.10 & 3.11) with pip caching.
-- **Stage 3: Build & Lint Validation**: Runs `flake8` to catch syntax errors, undefined variables, and formatting violations.
-- **Stage 4: Automated Pytest**: Executes authentication, RBAC, and admin tests, exporting JUnit XML reports.
-- **Stage 5: SonarCloud Analysis**: Conducts static analysis on code maintainability, security hotspots, and test coverage.
-- **Stage 6: Artifact Archival**: Saves JUnit and coverage XML reports as GitHub Actions workflow artifacts (14-day retention).
-
-### 10.2 CD Staging Workflow (`.github/workflows/cd-staging.yml`)
-Automatically triggers after the CI workflow successfully passes on `develop` or `main`.
-1. Builds the Docker container image `medicare-hms:staging`.
-2. Spins up the staging container in an isolated container runner.
-3. Performs automated health check verification by polling `GET http://localhost:5000/health` until HTTP 200 OK is verified.
-4. Generates deployment summary reports in the GitHub Actions dashboard.
-
-### 10.3 Required GitHub Secrets
-
-To configure SonarCloud and staging secrets in GitHub:
-Navigate to **Settings > Secrets and variables > Actions** and set:
-
-| Secret Name | Description |
-|---|---|
-| `SONAR_TOKEN` | SonarCloud security analysis token |
-| `SONAR_HOST_URL` | `https://sonarcloud.io` (or self-hosted SonarQube URL) |
-| `STAGING_SECRET_KEY` | Staging Flask encryption key |
-
----
-
-## 11. Docker & Containerized Execution
-
-You can run the entire system (Flask app + MySQL 8.0) locally using Docker Compose:
-
+### 7.2 Run Linting & Static Analysis
 ```bash
-# Build and run containers in background
-docker compose up -d --build
-
-# View logs
-docker compose logs -f
-
-# Check health status
-docker compose ps
-
-# Stop containers
-docker compose down
+flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
 ```
 
 ---
 
-## 12. Modules Roadmap & Progress
+## 8. Continuous Integration & Continuous Deployment (CI/CD)
 
-- [x] **Module 1**: User Authentication & Role Management (Completed)
-- [x] **Module 2**: Patient Management – Profiles & Demographics (Completed)
-- [x] **Module 3**: Doctor Management – Specializations & Profiles (Completed)
-- [x] **Module 4**: Patient–Doctor Appointment Management (Completed)
-- [ ] **Module 5**: Staff Management
-- [ ] **Module 6**: Room Management
-- [ ] **Module 7**: Ward Management
-- [ ] **Module 8**: Patient Admissions & Stay Tracking
-- [ ] **Module 9**: Digital Prescriptions
-- [ ] **Module 10**: Pharmacy Inventory & Dispensing
-- [ ] **Module 11**: Cost & Itemized Billing
-- [ ] **Module 12**: Payment Records & Receipts
+The project uses **GitHub Actions** exclusively (no Jenkins).
 
+```
+feature/module-5-staff-management
+              |
+              | Pull Request
+              v
+           develop
+              |
+              v
+     ┌──────────────────┐
+     │ GitHub Actions CI │
+     ├──────────────────┤
+     │ Checkout         │
+     │ Python setup     │
+     │ Install deps     │
+     │ Flake8 Linting   │
+     │ Pytest + JUnit   │
+     │ SonarCloud Scan  │
+     └────────┬─────────┘
+              |
+           SUCCESS
+              |
+              v
+       STAGING DEPLOY
+              |
+              v
+          Testing
+              |
+              v
+             main
+              |
+              v
+     ┌──────────────────┐
+     │ GitHub Actions CD │
+     ├──────────────────┤
+     │ Build Container  │
+     │ Health Check     │
+     │ Deploy           │
+     └────────┬─────────┘
+              |
+              v
+        PRODUCTION
+```
 
+### 8.1 CI Workflow (`.github/workflows/ci.yml`)
+- Triggers on push to `main`, `develop`, and `feature/**` branches, and on pull requests targeting `develop` and `main`.
+- Matrix testing across Python 3.10 and 3.11.
+- Flake8 linting and complexity checks (`--max-complexity=10`).
+- Automated pytest execution generating JUnit XML and coverage XML artifacts.
+- SonarCloud code quality and static analysis scanning.
+
+### 8.2 CD Workflow (`.github/workflows/cd.yml`)
+- Automatically triggers upon successful CI completion (`workflow_run`).
+- **Develop branch** -> Deploys to `staging` environment with health verification.
+- **Main branch** -> Deploys to `production` environment with health verification.
+- Uses GitHub Environments (`staging`, `production`) and GitHub Secrets.
+
+### 8.3 Required GitHub Secrets
+Configure the following secrets in GitHub Repository Settings -> Secrets and Variables -> Actions:
+- `SONAR_TOKEN`: Token from SonarCloud for code quality scanning.
+- `SONAR_HOST_URL`: SonarQube/SonarCloud server URL (e.g. `https://sonarcloud.io`).
+- `STAGING_SECRET_KEY`: Flask secret key for the staging environment.
+- `PROD_SECRET_KEY`: Flask secret key for the production environment.
+- `DATABASE_URL`: Production MySQL connection string.
+
+---
+
+## 9. Git Branching Strategy
+
+- **`main`**: Production-ready code, deploys to production.
+- **`develop`**: Integration branch, deploys to staging.
+- **`feature/module-5-staff-management`**: Feature branch for Module 5 implementation.

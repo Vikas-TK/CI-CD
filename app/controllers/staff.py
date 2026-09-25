@@ -3,6 +3,7 @@ from flask_login import current_user
 from app.models.appointment import AppointmentStatus
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
+from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
 from app.utils.decorators import staff_required
 
@@ -12,9 +13,68 @@ staff_bp = Blueprint("staff", __name__)
 @staff_bp.route("/dashboard")
 @staff_required
 def dashboard():
-    """Staff Dashboard overview with appointment overview stats."""
+    """Staff Dashboard overview with appointment overview stats and profile badge."""
+    staff_profile = StaffService.get_staff_by_user_id(current_user.user_id)
     appointment_stats = AppointmentService.get_hospital_appointment_stats()
-    return render_template("staff/dashboard.html", user=current_user, stats=appointment_stats)
+    return render_template(
+        "staff/dashboard.html",
+        user=current_user,
+        staff=staff_profile,
+        stats=appointment_stats
+    )
+
+
+# ---------------------------------------------------------
+# STAFF SELF-SERVICE (MODULE 5)
+# ---------------------------------------------------------
+
+@staff_bp.route("/profile", methods=["GET"])
+@staff_required
+def profile():
+    """Staff self-service view of authenticated user's profile."""
+    staff = StaffService.get_staff_by_user_id(current_user.user_id)
+    return render_template("staff/profile.html", user=current_user, staff=staff)
+
+
+@staff_bp.route("/profile/edit", methods=["GET"])
+@staff_required
+def profile_edit():
+    """Staff self-service form to edit own contact and Aadhaar information."""
+    staff = StaffService.get_staff_by_user_id(current_user.user_id)
+    return render_template("staff/profile_edit.html", user=current_user, staff=staff)
+
+
+@staff_bp.route("/profile/update", methods=["POST"])
+@staff_required
+def profile_update():
+    """Staff self-service update handler."""
+    staff = StaffService.get_staff_by_user_id(current_user.user_id)
+    if not staff:
+        flash("Staff profile record not found. Contact administrator.", "danger")
+        return redirect(url_for("staff.dashboard"))
+
+    phone_number = request.form.get("phone_number", "")
+    aadhaar_number = request.form.get("aadhaar_number", "")
+
+    updated_staff, errors = StaffService.update_staff_profile(
+        staff_id=staff.staff_id,
+        updating_user=current_user,
+        phone_number=phone_number,
+        aadhaar_number=aadhaar_number
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+        return render_template(
+            "staff/profile_edit.html",
+            user=current_user,
+            staff=staff,
+            form_data=request.form
+        ), 400
+
+    flash("Your profile information has been updated successfully.", "success")
+    return redirect(url_for("staff.profile"))
 
 
 @staff_bp.route("/patients", methods=["GET"])
