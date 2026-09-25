@@ -2,10 +2,12 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import current_user
 from app.models.user import User, Role
 from app.models.patient import Patient
+from app.models.staff import Staff
 from app.models.appointment import AppointmentStatus
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
+from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
 from app.utils.decorators import admin_required
 
@@ -24,6 +26,7 @@ def dashboard():
     total_patients = User.query.filter_by(role=Role.PATIENT, is_active=True).count()
     total_pharmacy = User.query.filter_by(role=Role.PHARMACY_MANAGER, is_active=True).count()
     total_patient_profiles = Patient.query.count()
+    total_staff_profiles = Staff.query.count()
 
     appointment_stats = AppointmentService.get_hospital_appointment_stats()
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
@@ -37,6 +40,7 @@ def dashboard():
         total_patients=total_patients,
         total_pharmacy=total_pharmacy,
         total_patient_profiles=total_patient_profiles,
+        total_staff_profiles=total_staff_profiles,
         appointment_stats=appointment_stats,
         recent_users=recent_users
     )
@@ -387,6 +391,168 @@ def doctor_update(doctor_id):
 
     flash(f"Doctor profile for Dr. {updated_doc.full_name} updated successfully.", "success")
     return redirect(url_for("admin.doctor_details", doctor_id=doctor.doctor_id))
+
+
+# ==============================================================================
+# MODULE 5: ADMINISTRATOR STAFF MANAGEMENT
+# ==============================================================================
+
+@admin_bp.route("/staff", methods=["GET"])
+@admin_required
+def staff_list():
+    """Administrator Staff Directory with search, filters, and unprofiled warnings."""
+    search_query = request.args.get("search", "").strip()
+    designation_filter = request.args.get("designation", "").strip()
+    status_filter = request.args.get("status", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    query = StaffService.list_staff(
+        search_query=search_query,
+        designation_filter=designation_filter,
+        status_filter=status_filter
+    )
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
+    staff_members = pagination.items
+    unprofiled_staff = StaffService.get_unprofiled_staff_users()
+
+    return render_template(
+        "admin/staff/index.html",
+        staff_members=staff_members,
+        pagination=pagination,
+        search_query=search_query,
+        designation_filter=designation_filter,
+        status_filter=status_filter,
+        designations=StaffService.VALID_DESIGNATIONS,
+        unprofiled_staff=unprofiled_staff
+    )
+
+
+def _process_staff_create_post():
+    """Helper to process staff creation form data cleanly."""
+    existing_user_id = request.form.get("existing_user_id", "").strip()
+    designation = request.form.get("designation", "").strip()
+    aadhaar_number = request.form.get("aadhaar_number", "").strip()
+
+    if existing_user_id:
+        return StaffService.create_staff_profile(
+            user_id=existing_user_id,
+            designation=designation,
+            aadhaar_number=aadhaar_number
+        )
+
+    first_name = request.form.get("first_name", "")
+    last_name = request.form.get("last_name", "")
+    email = request.form.get("email", "")
+    phone_number = request.form.get("phone_number", "")
+    password = request.form.get("password", "")
+    is_active = (
+        request.form.get("is_active") == "1" or
+        request.form.get("is_active") == "true" or
+        "is_active" in request.form
+    )
+
+    return StaffService.create_staff_with_account(
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        phone_number=phone_number,
+        password=password,
+        designation=designation,
+        aadhaar_number=aadhaar_number,
+        is_active=is_active
+    )
+
+
+@admin_bp.route("/staff/create", methods=["GET", "POST"])
+@admin_required
+def staff_create():
+    """Administrator interface to provision a new staff account and profile."""
+    unprofiled_staff = StaffService.get_unprofiled_staff_users()
+
+    if request.method == "POST":
+        staff, errors = _process_staff_create_post()
+
+        if errors:
+            for err in errors:
+                flash(err, "danger")
+            return render_template(
+                "admin/staff/create.html",
+                form_data=request.form,
+                designations=StaffService.VALID_DESIGNATIONS,
+                unprofiled_staff=unprofiled_staff
+            ), 400
+
+        flash(f"Staff profile for {staff.full_name} ({staff.designation}) created successfully.", "success")
+        return redirect(url_for("admin.staff_details", staff_id=staff.staff_id))
+
+    return render_template(
+        "admin/staff/create.html",
+        designations=StaffService.VALID_DESIGNATIONS,
+        unprofiled_staff=unprofiled_staff
+    )
+
+
+@admin_bp.route("/staff/<int:staff_id>", methods=["GET"])
+@admin_required
+def staff_details(staff_id):
+    """Administrator detailed staff profile view."""
+    staff = StaffService.get_staff_by_id(staff_id)
+    if not staff:
+        flash("Staff profile record not found.", "danger")
+        return redirect(url_for("admin.staff_list"))
+
+    return render_template("admin/staff/view.html", staff=staff)
+
+
+@admin_bp.route("/staff/<int:staff_id>/edit", methods=["GET"])
+@admin_required
+def staff_edit(staff_id):
+    """Administrator edit staff profile form."""
+    staff = StaffService.get_staff_by_id(staff_id)
+    if not staff:
+        flash("Staff profile record not found.", "danger")
+        return redirect(url_for("admin.staff_list"))
+
+    return render_template(
+        "admin/staff/edit.html",
+        staff=staff,
+        designations=StaffService.VALID_DESIGNATIONS
+    )
+
+
+@admin_bp.route("/staff/<int:staff_id>/update", methods=["POST"])
+@admin_required
+def staff_update(staff_id):
+    """Administrator update staff profile handler."""
+    staff = StaffService.get_staff_by_id(staff_id)
+    if not staff:
+        flash("Staff profile record not found.", "danger")
+        return redirect(url_for("admin.staff_list"))
+
+    designation = request.form.get("designation", "")
+    phone_number = request.form.get("phone_number", "")
+    aadhaar_number = request.form.get("aadhaar_number", "")
+
+    updated_staff, errors = StaffService.update_staff_profile(
+        staff_id=staff.staff_id,
+        updating_user=current_user,
+        designation=designation,
+        phone_number=phone_number,
+        aadhaar_number=aadhaar_number
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+        return render_template(
+            "admin/staff/edit.html",
+            staff=staff,
+            form_data=request.form,
+            designations=StaffService.VALID_DESIGNATIONS
+        ), 400
+
+    flash(f"Staff profile for {updated_staff.full_name} updated successfully.", "success")
+    return redirect(url_for("admin.staff_details", staff_id=staff.staff_id))
 
 
 # ---------------------------------------------------------

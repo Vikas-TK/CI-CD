@@ -5,10 +5,12 @@ from app import db
 from app.models.user import User, Role
 from app.models.patient import Patient
 from app.models.doctor import Doctor
+from app.models.staff import Staff
 from app.models.appointment import Appointment, AppointmentStatus
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
+from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
 
 
@@ -56,10 +58,19 @@ def _seed_sample_patient():
 def _seed_sample_doctor():
     sarah_user = User.query.filter_by(email="doctor.jenkins@hospital.org").first()
     if sarah_user and not Doctor.query.filter_by(user_id=sarah_user.user_id).first():
-
         DoctorService.create_doctor_profile(
             user_id=sarah_user.user_id,
             specialization="Cardiologist"
+        )
+
+
+def _seed_sample_staff():
+    mark_user = User.query.filter_by(email="staff.mark@hospital.org").first()
+    if mark_user and not Staff.query.filter_by(user_id=mark_user.user_id).first():
+        StaffService.create_staff_profile(
+            user_id=mark_user.user_id,
+            designation="Nurse",
+            aadhaar_number="987654321098"
         )
 
 
@@ -143,10 +154,11 @@ def register_cli_commands(app):
 
     @app.cli.command("seed-data")
     def seed_data():
-        """Seeds sample users, doctors, patients, and appointments for development and evaluation."""
+        """Seeds sample users, doctors, patients, staff, and appointments for development and evaluation."""
         db.create_all()
         created_count = _seed_sample_users()
         _seed_sample_patient()
         _seed_sample_doctor()
-        _seed_sample_appointments()
-        click.echo(click.style(f"Seeded {created_count} demo user accounts, doctor, patient, and appointments.", fg="green"))
+        _seed_sample_staff()
+        msg = f"Seeded {created_count} demo user accounts, doctor, patient, staff, and appointments."
+        click.echo(click.style(msg, fg="green"))

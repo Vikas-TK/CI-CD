@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Staff - Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.staff_list') }}">Staff</a></li>
+                <li class="breadcrumb-item active" aria-current="page">New Staff</li>
+            </ol>
+        </nav>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="card-title fw-bold mb-0">
+                    <i class="bi bi-person-plus-fill me-2"></i>Provision Staff Profile
+                </h4>
+                <small class="text-white-50">Create an authenticated staff user account and assign their job designation.</small>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('admin.staff_create') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    {% if unprofiled_staff %}
+                    <div class="card bg-light border-0 mb-4 p-3">
+                        <label class="form-label fw-bold text-dark">
+                            <i class="bi bi-link-45deg me-1"></i> Option A: Link Existing Staff User Account
+                        </label>
+                        <select name="existing_user_id" class="form-select mb-2" id="existingUserSelect">
+                            <option value="">-- Create a New Staff Account Below --</option>
+                            {% for u in unprofiled_staff %}
+                                <option value="{{ u.user_id }}" {% if form_data and form_data.get('existing_user_id') == u.user_id|string %}selected{% endif %}>
+                                    #{{ u.user_id }} - {{ u.full_name }} ({{ u.email }} | {{ u.phone_number }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Select an unprofiled staff user to attach a designation, or leave blank to register a new account.</small>
+                    </div>
+                    {% endif %}
+
+                    <div id="newAccountSection">
+                        <h5 class="fw-bold text-secondary mb-3 border-bottom pb-2">
+                            <i class="bi bi-person-bounding-box me-2 text-primary"></i>Staff User Credentials
+                        </h5>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="first_name" class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" 
+                                       value="{{ form_data.get('first_name', '') if form_data else '' }}" placeholder="e.g. Mark">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="last_name" class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" 
+                                       value="{{ form_data.get('last_name', '') if form_data else '' }}" placeholder="e.g. Spencer">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="email" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ form_data.get('email', '') if form_data else '' }}" placeholder="staff.mark@hospital.org">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone_number" class="form-label fw-semibold">Phone Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="phone_number" name="phone_number" 
+                                       value="{{ form_data.get('phone_number', '') if form_data else '' }}" placeholder="+1000000003">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="password" class="form-label fw-semibold">Initial Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="password" name="password" 
+                                       placeholder="Minimum 6 characters">
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" 
+                                           {% if not form_data or form_data.get('is_active') == '1' %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="is_active">Activate Account Immediately</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-secondary mb-3 border-bottom pb-2">
+                        <i class="bi bi-briefcase me-2 text-primary"></i>Staff Role & Identification
+                    </h5>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="designation" class="form-label fw-semibold">Designation <span class="text-danger">*</span></label>
+                            <select class="form-select" id="designation" name="designation" required>
+                                <option value="">-- Select Designation --</option>
+                                {% for desig in designations %}
+                                    <option value="{{ desig }}" {% if form_data and form_data.get('designation') == desig %}selected{% endif %}>
+                                        {{ desig }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Job title or support role in hospital operations.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="aadhaar_number" class="form-label fw-semibold">Aadhaar Number (12 Digits)</label>
+                            <input type="text" class="form-control font-monospace" id="aadhaar_number" name="aadhaar_number" 
+                                   value="{{ form_data.get('aadhaar_number', '') if form_data else '' }}" 
+                                   placeholder="e.g. 123456789012" maxlength="14">
+                            <small class="text-muted">Optional national identity number. Displayed masked in UI.</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('admin.staff_list') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-circle me-1"></i> Create Staff Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
