@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Room - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.rooms_list') }}">Room Management</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Add Room</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h4 class="card-title mb-0 fw-bold text-primary">
+                        <i class="bi bi-door-open-fill me-2"></i>Add Hospital Room
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('admin.room_create') }}" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="room_number" class="form-label fw-semibold">
+                                    Room Number / ID <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="room_number"
+                                       name="room_number"
+                                       placeholder="e.g., 101, ICU-1, 202A"
+                                       value="{{ form_data.room_number if form_data else '' }}"
+                                       required>
+                                <div class="form-text">Unique alphanumeric identifier for the physical room.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="room_type" class="form-label fw-semibold">
+                                    Room Type <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="room_type" name="room_type" required>
+                                    <option value="">-- Select Room Type --</option>
+                                    {% for rtype in all_types %}
+                                    <option value="{{ rtype }}" {% if form_data and form_data.room_type == rtype %}selected{% endif %}>
+                                        {{ rtype }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="floor" class="form-label fw-semibold">
+                                    Floor <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="floor"
+                                       name="floor"
+                                       placeholder="e.g., 1, 2, Ground Floor, ICU Floor"
+                                       value="{{ form_data.floor if form_data else '' }}"
+                                       required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="block" class="form-label fw-semibold">
+                                    Block / Building <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="block"
+                                       name="block"
+                                       placeholder="e.g., A, B, Main Wing, East Wing"
+                                       value="{{ form_data.block if form_data else '' }}"
+                                       required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="status" class="form-label fw-semibold">
+                                    Initial Status <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="status" name="status" required>
+                                    {% for st in all_statuses %}
+                                    <option value="{{ st }}" {% if form_data and form_data.status == st %}selected{% elif not form_data and st == 'Available' %}selected{% endif %}>
+                                        {{ st }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Default is 'Available' for new room records.</div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('admin.rooms_list') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                                <i class="bi bi-check-circle me-1"></i> Create Room Record
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

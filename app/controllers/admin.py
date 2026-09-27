@@ -4,11 +4,13 @@ from app.models.user import User, Role
 from app.models.patient import Patient
 from app.models.staff import Staff
 from app.models.appointment import AppointmentStatus
+from app.models.room import Room, RoomType, RoomStatus
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
+from app.services.room_service import RoomService
 from app.utils.decorators import admin_required
 
 
@@ -29,6 +31,7 @@ def dashboard():
     total_staff_profiles = Staff.query.count()
 
     appointment_stats = AppointmentService.get_hospital_appointment_stats()
+    room_stats = RoomService.get_room_stats()
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
 
     return render_template(
@@ -42,6 +45,7 @@ def dashboard():
         total_patient_profiles=total_patient_profiles,
         total_staff_profiles=total_staff_profiles,
         appointment_stats=appointment_stats,
+        room_stats=room_stats,
         recent_users=recent_users
     )
 
@@ -553,6 +557,174 @@ def staff_update(staff_id):
 
     flash(f"Staff profile for {updated_staff.full_name} updated successfully.", "success")
     return redirect(url_for("admin.staff_details", staff_id=staff.staff_id))
+
+
+# ==============================================================================
+# MODULE 6: ADMINISTRATOR ROOM MANAGEMENT
+# ==============================================================================
+
+@admin_bp.route("/rooms", methods=["GET"])
+@admin_required
+def rooms_list():
+    """Administrator Room Inventory view with capacity statistics, search, and filters."""
+    search_query = request.args.get("search", "").strip()
+    room_type = request.args.get("room_type", "").strip()
+    status = request.args.get("status", "").strip()
+    floor = request.args.get("floor", "").strip()
+    block = request.args.get("block", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    pagination = RoomService.get_all_rooms(
+        room_type=room_type or None,
+        status=status or None,
+        floor=floor or None,
+        block=block or None,
+        search=search_query or None,
+        page=page,
+        per_page=12
+    )
+    rooms = pagination.items
+    stats = RoomService.get_room_stats()
+    unique_floors = RoomService.get_unique_floors()
+    unique_blocks = RoomService.get_unique_blocks()
+
+    return render_template(
+        "admin/rooms/index.html",
+        rooms=rooms,
+        pagination=pagination,
+        stats=stats,
+        search_query=search_query,
+        current_type=room_type,
+        current_status=status,
+        current_floor=floor,
+        current_block=block,
+        all_types=RoomType.ALL_TYPES,
+        all_statuses=RoomStatus.ALL_STATUSES,
+        unique_floors=unique_floors,
+        unique_blocks=unique_blocks
+    )
+
+
+@admin_bp.route("/rooms/create", methods=["GET", "POST"])
+@admin_required
+def room_create():
+    """Administrator interface to add a new physical room."""
+    if request.method == "POST":
+        room_number = request.form.get("room_number", "").strip()
+        room_type = request.form.get("room_type", "").strip()
+        floor = request.form.get("floor", "").strip()
+        block = request.form.get("block", "").strip()
+        status = request.form.get("status", RoomStatus.AVAILABLE).strip()
+
+        room, errors = RoomService.create_room(
+            room_number=room_number,
+            room_type=room_type,
+            floor=floor,
+            block=block,
+            status=status
+        )
+
+        if errors:
+            for err in errors:
+                flash(err, "danger")
+            return render_template(
+                "admin/rooms/create.html",
+                form_data=request.form,
+                all_types=RoomType.ALL_TYPES,
+                all_statuses=RoomStatus.ALL_STATUSES
+            ), 400
+
+        flash(f"Room #{room.room_number} ({room.room_type}) added successfully.", "success")
+        return redirect(url_for("admin.room_details", room_id=room.room_id))
+
+    return render_template(
+        "admin/rooms/create.html",
+        all_types=RoomType.ALL_TYPES,
+        all_statuses=RoomStatus.ALL_STATUSES
+    )
+
+
+@admin_bp.route("/rooms/<int:room_id>", methods=["GET"])
+@admin_required
+def room_details(room_id):
+    """Administrator detailed view of a room."""
+    room = RoomService.get_room_by_id(room_id)
+    if not room:
+        flash("Room record not found.", "danger")
+        return redirect(url_for("admin.rooms_list"))
+
+    return render_template("admin/rooms/view.html", room=room)
+
+
+@admin_bp.route("/rooms/<int:room_id>/edit", methods=["GET", "POST"])
+@admin_required
+def room_edit(room_id):
+    """Administrator edit room form and update handler."""
+    if request.method == "POST":
+        return room_update(room_id)
+
+    room = RoomService.get_room_by_id(room_id)
+    if not room:
+        flash("Room record not found.", "danger")
+        return redirect(url_for("admin.rooms_list"))
+
+    return render_template(
+        "admin/rooms/edit.html",
+        room=room,
+        all_types=RoomType.ALL_TYPES,
+        all_statuses=RoomStatus.ALL_STATUSES
+    )
+
+
+@admin_bp.route("/rooms/<int:room_id>/update", methods=["POST"])
+@admin_required
+def room_update(room_id):
+    """Administrator update room handler."""
+    room = RoomService.get_room_by_id(room_id)
+    if not room:
+        flash("Room record not found.", "danger")
+        return redirect(url_for("admin.rooms_list"))
+
+    room_number = request.form.get("room_number", "").strip()
+    room_type = request.form.get("room_type", "").strip()
+    floor = request.form.get("floor", "").strip()
+    block = request.form.get("block", "").strip()
+    status = request.form.get("status", "").strip()
+
+    updated_room, errors = RoomService.update_room(
+        room_id=room.room_id,
+        room_number=room_number,
+        room_type=room_type,
+        floor=floor,
+        block=block,
+        status=status
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+        return render_template(
+            "admin/rooms/edit.html",
+            room=room,
+            form_data=request.form,
+            all_types=RoomType.ALL_TYPES,
+            all_statuses=RoomStatus.ALL_STATUSES
+        ), 400
+
+    flash(f"Room #{updated_room.room_number} details updated successfully.", "success")
+    return redirect(url_for("admin.room_details", room_id=room.room_id))
+
+
+@admin_bp.route("/rooms/<int:room_id>/delete", methods=["POST"])
+@admin_required
+def room_delete(room_id):
+    """Administrator delete room action with safety checks."""
+    success, message = RoomService.delete_room(room_id)
+    if success:
+        flash(message, "success")
+    else:
+        flash(message, "danger")
+    return redirect(url_for("admin.rooms_list"))
 
 
 # ---------------------------------------------------------

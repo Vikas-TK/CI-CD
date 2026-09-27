@@ -156,6 +156,49 @@
     </div>
 </div>
 
+<!-- Room Capacity & Operational Status Summary (Module 6) -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-door-open text-primary me-2"></i> Room Capacity & Operational Status</h5>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin.room_create') }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Add Room
+            </a>
+            <a href="{{ url_for('admin.rooms_list') }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-list-ul me-1"></i> View Directory
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-3">
+        <div class="row g-3 text-center">
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-light rounded-3">
+                    <span class="text-muted small text-uppercase fw-semibold d-block">Total Rooms</span>
+                    <span class="fs-4 fw-bold text-dark">{{ room_stats.total }}</span>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-success bg-opacity-10 rounded-3 border-start border-success border-4">
+                    <span class="text-success small text-uppercase fw-semibold d-block">Available</span>
+                    <span class="fs-4 fw-bold text-success">{{ room_stats.available }}</span>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-danger bg-opacity-10 rounded-3 border-start border-danger border-4">
+                    <span class="text-danger small text-uppercase fw-semibold d-block">Occupied</span>
+                    <span class="fs-4 fw-bold text-danger">{{ room_stats.occupied }}</span>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-warning bg-opacity-10 rounded-3 border-start border-warning border-4">
+                    <span class="text-warning small text-uppercase fw-semibold d-block">Maintenance</span>
+                    <span class="fs-4 fw-bold text-warning">{{ room_stats.maintenance }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <!-- Recent Registrations -->
 <div class="row">

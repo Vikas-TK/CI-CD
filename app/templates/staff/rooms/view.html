@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Room #{{ room.room_number }} Details - Staff Portal - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('staff.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('staff.rooms_list') }}">Room Directory</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Room #{{ room.room_number }}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="card-title mb-0 fw-bold text-primary">
+                            <i class="bi bi-door-open-fill me-2"></i>Room #{{ room.room_number }}
+                        </h4>
+                        <span class="text-muted small">Database Record ID: {{ room.room_id }}</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-{{ room.status_badge_class }} fs-6 px-3 py-2 rounded-pill">
+                            <i class="bi bi-info-circle me-1"></i> {{ room.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Room Number</span>
+                                <span class="fs-5 fw-bold text-dark">#{{ room.room_number }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Room Type</span>
+                                <span class="fs-5 fw-bold text-dark">{{ room.room_type }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Floor</span>
+                                <span class="fs-5 fw-bold text-dark">{{ room.floor }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Block / Building</span>
+                                <span class="fs-5 fw-bold text-dark">{{ room.block }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Created At</span>
+                                <span class="text-dark fw-semibold">
+                                    {{ room.created_at.strftime('%Y-%m-%d %H:%M:%S') if room.created_at else '—' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Last Updated</span>
+                                <span class="text-dark fw-semibold">
+                                    {{ room.updated_at.strftime('%Y-%m-%d %H:%M:%S') if room.updated_at else '—' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-4 mb-0 d-flex align-items-center" role="alert">
+                        <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                        <div>
+                            <strong>Inpatient Allocation Note:</strong> Patient assignments and discharge workflows will be managed through future Admission Management.
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('staff.rooms_list') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Room Directory
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

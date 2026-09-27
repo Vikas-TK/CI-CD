@@ -1,10 +1,12 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import current_user
 from app.models.appointment import AppointmentStatus
+from app.models.room import RoomType, RoomStatus
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
+from app.services.room_service import RoomService
 from app.utils.decorators import staff_required
 
 staff_bp = Blueprint("staff", __name__)
@@ -13,14 +15,16 @@ staff_bp = Blueprint("staff", __name__)
 @staff_bp.route("/dashboard")
 @staff_required
 def dashboard():
-    """Staff Dashboard overview with appointment overview stats and profile badge."""
+    """Staff Dashboard overview with appointment and room stats and profile badge."""
     staff_profile = StaffService.get_staff_by_user_id(current_user.user_id)
     appointment_stats = AppointmentService.get_hospital_appointment_stats()
+    room_stats = RoomService.get_room_stats()
     return render_template(
         "staff/dashboard.html",
         user=current_user,
         staff=staff_profile,
-        stats=appointment_stats
+        stats=appointment_stats,
+        room_stats=room_stats
     )
 
 
@@ -190,3 +194,62 @@ def appointment_update_status(appointment_id):
         flash(f"Appointment #{appointment_id} updated to '{new_status}'.", "success")
 
     return redirect(url_for("staff.appointment_details", appointment_id=appointment_id))
+
+
+# ---------------------------------------------------------
+# ROOM INVENTORY DIRECTORY (MODULE 6)
+# ---------------------------------------------------------
+
+@staff_bp.route("/rooms", methods=["GET"])
+@staff_required
+def rooms_list():
+    """Staff view of hospital room inventory with search, filtering, and availability stats."""
+    search_query = request.args.get("search", "").strip()
+    room_type = request.args.get("room_type", "").strip()
+    status = request.args.get("status", "").strip()
+    floor = request.args.get("floor", "").strip()
+    block = request.args.get("block", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    pagination = RoomService.get_all_rooms(
+        room_type=room_type or None,
+        status=status or None,
+        floor=floor or None,
+        block=block or None,
+        search=search_query or None,
+        page=page,
+        per_page=12
+    )
+    rooms = pagination.items
+    stats = RoomService.get_room_stats()
+    unique_floors = RoomService.get_unique_floors()
+    unique_blocks = RoomService.get_unique_blocks()
+
+    return render_template(
+        "staff/rooms/index.html",
+        rooms=rooms,
+        pagination=pagination,
+        stats=stats,
+        search_query=search_query,
+        current_type=room_type,
+        current_status=status,
+        current_floor=floor,
+        current_block=block,
+        all_types=RoomType.ALL_TYPES,
+        all_statuses=RoomStatus.ALL_STATUSES,
+        unique_floors=unique_floors,
+        unique_blocks=unique_blocks,
+        is_readonly=True
+    )
+
+
+@staff_bp.route("/rooms/<int:room_id>", methods=["GET"])
+@staff_required
+def room_details(room_id):
+    """Staff detailed read-only view of a room."""
+    room = RoomService.get_room_by_id(room_id)
+    if not room:
+        flash("Room record not found.", "danger")
+        return redirect(url_for("staff.rooms_list"))
+
+    return render_template("staff/rooms/view.html", room=room, is_readonly=True)
