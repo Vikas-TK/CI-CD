@@ -7,11 +7,13 @@ from app.models.patient import Patient
 from app.models.doctor import Doctor
 from app.models.staff import Staff
 from app.models.appointment import Appointment, AppointmentStatus
+from app.models.room import Room, RoomType, RoomStatus
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
+from app.services.room_service import RoomService
 
 
 def _seed_sample_users():
@@ -108,6 +110,28 @@ def _seed_sample_appointments():
             db.session.commit()
 
 
+def _seed_sample_rooms():
+    sample_rooms = [
+        ("101", RoomType.SINGLE, "1", "A", RoomStatus.AVAILABLE),
+        ("102", RoomType.DOUBLE, "1", "A", RoomStatus.AVAILABLE),
+        ("201", RoomType.DELUXE, "2", "B", RoomStatus.OCCUPIED),
+        ("202", RoomType.ICU, "2", "B", RoomStatus.AVAILABLE),
+        ("301", RoomType.OTHER, "3", "C", RoomStatus.MAINTENANCE),
+    ]
+    created = 0
+    for rnum, rtype, floor, block, status in sample_rooms:
+        if not Room.query.filter_by(room_number=rnum).first():
+            RoomService.create_room(
+                room_number=rnum,
+                room_type=rtype,
+                floor=floor,
+                block=block,
+                status=status
+            )
+            created += 1
+    return created
+
+
 def register_cli_commands(app):
     """Registers CLI commands on the Flask application instance."""
 
@@ -154,11 +178,14 @@ def register_cli_commands(app):
 
     @app.cli.command("seed-data")
     def seed_data():
-        """Seeds sample users, doctors, patients, staff, and appointments for development and evaluation."""
+        """Seeds sample users, doctors, patients, staff, rooms, and appointments for evaluation."""
         db.create_all()
         created_count = _seed_sample_users()
         _seed_sample_patient()
         _seed_sample_doctor()
         _seed_sample_staff()
-        msg = f"Seeded {created_count} demo user accounts, doctor, patient, staff, and appointments."
+        _seed_sample_appointments()
+        _seed_sample_rooms()
+        msg = f"Seeded {created_count} demo user accounts, doctor, patient, staff, rooms, and appointments."
         click.echo(click.style(msg, fg="green"))
+

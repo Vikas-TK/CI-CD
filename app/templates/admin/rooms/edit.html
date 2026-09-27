@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Room #{{ room.room_number }} - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.rooms_list') }}">Room Management</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.room_details', room_id=room.room_id) }}">Room #{{ room.room_number }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h4 class="card-title mb-0 fw-bold text-primary">
+                        <i class="bi bi-pencil-square me-2"></i>Edit Room #{{ room.room_number }}
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('admin.room_edit', room_id=room.room_id) }}" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="room_number" class="form-label fw-semibold">
+                                    Room Number / ID <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="room_number"
+                                       name="room_number"
+                                       value="{{ form_data.room_number if form_data else room.room_number }}"
+                                       required>
+                                <div class="form-text">Unique alphanumeric room identifier.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="room_type" class="form-label fw-semibold">
+                                    Room Type <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="room_type" name="room_type" required>
+                                    {% set sel_type = form_data.room_type if form_data else room.room_type %}
+                                    {% for rtype in all_types %}
+                                    <option value="{{ rtype }}" {% if sel_type == rtype %}selected{% endif %}>
+                                        {{ rtype }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="floor" class="form-label fw-semibold">
+                                    Floor <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="floor"
+                                       name="floor"
+                                       value="{{ form_data.floor if form_data else room.floor }}"
+                                       required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="block" class="form-label fw-semibold">
+                                    Block / Building <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="block"
+                                       name="block"
+                                       value="{{ form_data.block if form_data else room.block }}"
+                                       required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="status" class="form-label fw-semibold">
+                                    Operational Status <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="status" name="status" required>
+                                    {% set sel_status = form_data.status if form_data else room.status %}
+                                    {% for st in all_statuses %}
+                                    <option value="{{ st }}" {% if sel_status == st %}selected{% endif %}>
+                                        {{ st }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Set to 'Maintenance' if undergoing cleaning/repairs.</div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('admin.room_details', room_id=room.room_id) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                                <i class="bi bi-check-circle me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3,5 +3,13 @@ from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
+from app.services.room_service import RoomService
 
-__all__ = ["UserService", "PatientService", "DoctorService", "StaffService", "AppointmentService"]
+__all__ = [
+    "UserService",
+    "PatientService",
+    "DoctorService",
+    "StaffService",
+    "AppointmentService",
+    "RoomService"
+]

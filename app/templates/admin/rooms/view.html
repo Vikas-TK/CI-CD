@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Room #{{ room.room_number }} Details - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.rooms_list') }}">Room Management</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Room #{{ room.room_number }}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="card-title mb-0 fw-bold text-primary">
+                            <i class="bi bi-door-open-fill me-2"></i>Room #{{ room.room_number }}
+                        </h4>
+                        <span class="text-muted small">Database Record ID: {{ room.room_id }}</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-{{ room.status_badge_class }} fs-6 px-3 py-2 rounded-pill">
+                            <i class="bi bi-info-circle me-1"></i> {{ room.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Room Number</span>
+                                <span class="fs-5 fw-bold text-dark">#{{ room.room_number }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Room Type</span>
+                                <span class="fs-5 fw-bold text-dark">{{ room.room_type }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Floor</span>
+                                <span class="fs-5 fw-bold text-dark">{{ room.floor }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Block / Building</span>
+                                <span class="fs-5 fw-bold text-dark">{{ room.block }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Created At</span>
+                                <span class="text-dark fw-semibold">
+                                    {{ room.created_at.strftime('%Y-%m-%d %H:%M:%S') if room.created_at else '—' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <span class="text-muted small text-uppercase fw-semibold d-block">Last Updated</span>
+                                <span class="text-dark fw-semibold">
+                                    {{ room.updated_at.strftime('%Y-%m-%d %H:%M:%S') if room.updated_at else '—' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-4 mb-0 d-flex align-items-center" role="alert">
+                        <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                        <div>
+                            <strong>Future Inpatient Integration:</strong> Patient allocations, check-in history, and length of stay calculations will be linked through Admission Management.
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('admin.rooms_list') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Room Directory
+                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('admin.room_edit', room_id=room.room_id) }}" class="btn btn-primary fw-semibold">
+                            <i class="bi bi-pencil me-1"></i> Edit Room
+                        </a>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteRoomModal">
+                            <i class="bi bi-trash me-1"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Safe Delete Confirmation Modal -->
+<div class="modal fade" id="deleteRoomModal" tabindex="-1" aria-labelledby="deleteRoomModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger fw-bold" id="deleteRoomModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Confirm Room Deletion
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>Room #{{ room.room_number }}</strong> (Type: {{ room.room_type }}, Floor: {{ room.floor }}, Block: {{ room.block }})?</p>
+                {% if room.status == 'Occupied' %}
+                <div class="alert alert-danger mb-0">
+                    <i class="bi bi-slash-circle me-1"></i> <strong>Warning:</strong> This room is currently marked as Occupied. Deleting occupied rooms is restricted to preserve hospital integrity.
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-0 small">
+                    This action cannot be undone once confirmed.
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('admin.room_delete', room_id=room.room_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger" {% if room.status == 'Occupied' %}disabled title="Cannot delete occupied room"{% endif %}>
+                        <i class="bi bi-trash me-1"></i> Confirm Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
