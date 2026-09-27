@@ -77,6 +77,21 @@ stateDiagram-v2
   - Hospital-wide staff directory (`/staff`) with search and designation filters.
   - Aadhaar numbers are **never exposed** in the general staff directory.
 
+### 2.6 Module 6: Room Management
+- **Physical Room Inventory**: Manages room infrastructure (`room_id`, `room_number`, `room_type`, `floor`, `block`, `status`, `created_at`, `updated_at`).
+- **Controlled Room Types**: `Single`, `Double`, `Deluxe`, `ICU`, `Other`.
+- **Operational Status States**: `Available`, `Occupied`, `Maintenance`.
+- **Separation of Concerns for Future Inpatient Stay/Admission**: Room records describe physical capacity and operational readiness. Patient identifiers (`patient_id`) and admission dates (`check_in_date`) are normalized out of the `rooms` table and reserved for the future Admission Management module (Module 8).
+- **Administrator Room Management**:
+  - Full room inventory (`/admin/rooms`) with multi-parameter search (Room #, Type, Block, Status, Floor) and combinable dropdown filters.
+  - Add new physical room (`/admin/rooms/create`) with server-side validation and duplicate room number rejection.
+  - View room details (`/admin/rooms/<id>`) and update room attributes (`/admin/rooms/<id>/edit`).
+  - Safe room deletion (`/admin/rooms/<id>/delete`) preventing deletion of occupied rooms.
+  - Aggregated live room metrics (Total, Available, Occupied, Maintenance).
+- **Staff Room Access**:
+  - Staff read-only room inventory (`/staff/rooms`) and room detail view (`/staff/rooms/<id>`) with capacity stats for reception and patient intake coordination.
+  - Staff cannot create, edit, or delete room records.
+
 ---
 
 ## 3. Technology Stack
@@ -154,6 +169,18 @@ stateDiagram-v2
 | `created_at` | `DATETIME` | `NOT NULL` | Booking creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Status update timestamp (UTC) |
 
+### 4.6 `rooms` Table
+| Column Name | Data Type | Constraints | Description |
+|---|---|---|---|
+| `room_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique room primary key |
+| `room_number` | `VARCHAR(20)` | `NOT NULL, UNIQUE, INDEX` | Room number / door identifier (e.g. `101`, `ICU-1`) |
+| `room_type` | `VARCHAR(30)` | `NOT NULL, INDEX, DEFAULT 'Single'` | `Single`, `Double`, `Deluxe`, `ICU`, `Other` |
+| `floor` | `INTEGER` | `NOT NULL, INDEX` | Floor number |
+| `block` | `VARCHAR(50)` | `NOT NULL, INDEX` | Building block / hospital wing |
+| `status` | `VARCHAR(20)` | `NOT NULL, INDEX, DEFAULT 'Available'` | `Available`, `Occupied`, `Maintenance` |
+| `created_at` | `DATETIME` | `NOT NULL` | Room record creation timestamp (UTC) |
+| `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
+
 ---
 
 ## 5. Application Route Access Matrix
@@ -189,6 +216,11 @@ stateDiagram-v2
 | `/admin/appointments` | `GET` | Administrator | Hospital appointment schedule |
 | `/admin/appointments/<id>` | `GET` | Administrator | Appointment details |
 | `/admin/appointments/<id>/status` | `POST` | Administrator | Update appointment status |
+| `/admin/rooms` | `GET` | Administrator | Room management & capacity stats |
+| `/admin/rooms/create` | `GET, POST` | Administrator | Create new physical room |
+| `/admin/rooms/<id>` | `GET` | Administrator | View room details |
+| `/admin/rooms/<id>/edit` | `GET, POST` | Administrator | Edit room configuration |
+| `/admin/rooms/<id>/delete` | `POST` | Administrator | Safe delete room (unoccupied only) |
 | `/doctor/dashboard` | `GET` | Doctor | Doctor operational portal |
 | `/doctor/profile` | `GET` | Doctor | Doctor self-service profile |
 | `/doctor/profile/edit` | `GET` | Doctor | Doctor self-service edit form |
@@ -207,6 +239,8 @@ stateDiagram-v2
 | `/staff/appointments` | `GET` | Staff | Hospital appointment schedule |
 | `/staff/appointments/<id>` | `GET` | Staff | View appointment details |
 | `/staff/appointments/<id>/status` | `POST` | Staff | Update appointment status |
+| `/staff/rooms` | `GET` | Staff | Read-only hospital room inventory |
+| `/staff/rooms/<id>` | `GET` | Staff | Read-only room details |
 | `/patient/dashboard` | `GET` | Patient | Patient portal & appointment overview |
 | `/patient/profile` | `GET` | Patient | Patient medical profile |
 | `/patient/profile/edit` | `GET` | Patient | Patient self-service edit form |
@@ -217,6 +251,7 @@ stateDiagram-v2
 | `/patient/appointments/<id>` | `GET` | Patient | View appointment status & notes |
 | `/patient/appointments/<id>/cancel` | `POST` | Patient | Cancel pending/approved appointment |
 | `/pharmacy/dashboard` | `GET` | Pharmacy Manager | Pharmacy inventory portal |
+
 
 ---
 
@@ -379,4 +414,4 @@ Configure the following secrets in GitHub Repository Settings -> Secrets and Var
 
 - **`main`**: Production-ready code, deploys to production.
 - **`develop`**: Integration branch, deploys to staging.
-- **`feature/module-5-staff-management`**: Feature branch for Module 5 implementation.
+- **`feature/module-6-room-management`**: Feature branch for Module 6 implementation.
