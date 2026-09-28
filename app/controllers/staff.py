@@ -2,11 +2,13 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import current_user
 from app.models.appointment import AppointmentStatus
 from app.models.room import RoomType, RoomStatus
+from app.models.ward import WardType, WardStatus
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
 from app.services.room_service import RoomService
+from app.services.ward_service import WardService
 from app.utils.decorators import staff_required
 
 staff_bp = Blueprint("staff", __name__)
@@ -15,17 +17,20 @@ staff_bp = Blueprint("staff", __name__)
 @staff_bp.route("/dashboard")
 @staff_required
 def dashboard():
-    """Staff Dashboard overview with appointment and room stats and profile badge."""
+    """Staff Dashboard overview with appointment, room, and ward stats and profile badge."""
     staff_profile = StaffService.get_staff_by_user_id(current_user.user_id)
     appointment_stats = AppointmentService.get_hospital_appointment_stats()
     room_stats = RoomService.get_room_stats()
+    ward_stats = WardService.get_ward_stats()
     return render_template(
         "staff/dashboard.html",
         user=current_user,
         staff=staff_profile,
         stats=appointment_stats,
-        room_stats=room_stats
+        room_stats=room_stats,
+        ward_stats=ward_stats
     )
+
 
 
 # ---------------------------------------------------------
@@ -253,3 +258,63 @@ def room_details(room_id):
         return redirect(url_for("staff.rooms_list"))
 
     return render_template("staff/rooms/view.html", room=room, is_readonly=True)
+
+
+# ---------------------------------------------------------
+# WARD INVENTORY DIRECTORY (MODULE 7)
+# ---------------------------------------------------------
+
+@staff_bp.route("/wards", methods=["GET"])
+@staff_required
+def wards_list():
+    """Staff view of hospital ward inventory with search, filtering, and capacity stats."""
+    search_query = request.args.get("search", "").strip()
+    ward_type = request.args.get("ward_type", "").strip()
+    status = request.args.get("status", "").strip()
+    floor = request.args.get("floor", "").strip()
+    block = request.args.get("block", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    pagination = WardService.get_all_wards(
+        ward_type=ward_type or None,
+        status=status or None,
+        floor=floor or None,
+        block=block or None,
+        search=search_query or None,
+        page=page,
+        per_page=12
+    )
+    wards = pagination.items
+    stats = WardService.get_ward_stats()
+    unique_floors = WardService.get_unique_floors()
+    unique_blocks = WardService.get_unique_blocks()
+
+    return render_template(
+        "staff/wards/index.html",
+        wards=wards,
+        pagination=pagination,
+        stats=stats,
+        search_query=search_query,
+        current_type=ward_type,
+        current_status=status,
+        current_floor=floor,
+        current_block=block,
+        all_types=WardType.ALL_TYPES,
+        all_statuses=WardStatus.ALL_STATUSES,
+        unique_floors=unique_floors,
+        unique_blocks=unique_blocks,
+        is_readonly=True
+    )
+
+
+@staff_bp.route("/wards/<int:ward_id>", methods=["GET"])
+@staff_required
+def ward_details(ward_id):
+    """Staff detailed read-only view of a ward."""
+    ward = WardService.get_ward_by_id(ward_id)
+    if not ward:
+        flash("Ward record not found.", "danger")
+        return redirect(url_for("staff.wards_list"))
+
+    return render_template("staff/wards/view.html", ward=ward, is_readonly=True)
+

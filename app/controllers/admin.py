@@ -5,12 +5,14 @@ from app.models.patient import Patient
 from app.models.staff import Staff
 from app.models.appointment import AppointmentStatus
 from app.models.room import Room, RoomType, RoomStatus
+from app.models.ward import Ward, WardType, WardStatus
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
 from app.services.room_service import RoomService
+from app.services.ward_service import WardService
 from app.utils.decorators import admin_required
 
 
@@ -32,6 +34,7 @@ def dashboard():
 
     appointment_stats = AppointmentService.get_hospital_appointment_stats()
     room_stats = RoomService.get_room_stats()
+    ward_stats = WardService.get_ward_stats()
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
 
     return render_template(
@@ -46,8 +49,10 @@ def dashboard():
         total_staff_profiles=total_staff_profiles,
         appointment_stats=appointment_stats,
         room_stats=room_stats,
+        ward_stats=ward_stats,
         recent_users=recent_users
     )
+
 
 
 @admin_bp.route("/users", methods=["GET"])
@@ -807,3 +812,176 @@ def appointment_update_status(appointment_id):
         flash(f"Appointment #{appointment_id} updated to '{new_status}'.", "success")
 
     return redirect(url_for("admin.appointment_details", appointment_id=appointment_id))
+
+
+# ==============================================================================
+# MODULE 7: ADMINISTRATOR WARD MANAGEMENT
+# ==============================================================================
+
+@admin_bp.route("/wards", methods=["GET"])
+@admin_required
+def wards_list():
+    """Administrator Ward Management directory with live capacity metrics, search, and combinable filters."""
+    search_query = request.args.get("search", "").strip()
+    ward_type = request.args.get("ward_type", "").strip()
+    status = request.args.get("status", "").strip()
+    floor = request.args.get("floor", "").strip()
+    block = request.args.get("block", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    pagination = WardService.get_all_wards(
+        ward_type=ward_type or None,
+        status=status or None,
+        floor=floor or None,
+        block=block or None,
+        search=search_query or None,
+        page=page,
+        per_page=12
+    )
+    wards = pagination.items
+    stats = WardService.get_ward_stats()
+    unique_floors = WardService.get_unique_floors()
+    unique_blocks = WardService.get_unique_blocks()
+
+    return render_template(
+        "admin/wards/index.html",
+        wards=wards,
+        pagination=pagination,
+        stats=stats,
+        search_query=search_query,
+        current_type=ward_type,
+        current_status=status,
+        current_floor=floor,
+        current_block=block,
+        all_types=WardType.ALL_TYPES,
+        all_statuses=WardStatus.ALL_STATUSES,
+        unique_floors=unique_floors,
+        unique_blocks=unique_blocks
+    )
+
+
+@admin_bp.route("/wards/create", methods=["GET", "POST"])
+@admin_required
+def ward_create():
+    """Administrator interface to provision a new clinical ward."""
+    if request.method == "POST":
+        ward_name = request.form.get("ward_name", "").strip()
+        ward_type = request.form.get("ward_type", "").strip()
+        floor = request.form.get("floor", "").strip()
+        block = request.form.get("block", "").strip()
+        capacity = request.form.get("capacity", "").strip()
+        status = request.form.get("status", WardStatus.ACTIVE).strip()
+
+        ward, errors = WardService.create_ward(
+            ward_name=ward_name,
+            ward_type=ward_type,
+            floor=floor,
+            block=block,
+            capacity=capacity,
+            status=status
+        )
+
+        if errors:
+            for err in errors:
+                flash(err, "danger")
+            return render_template(
+                "admin/wards/create.html",
+                form_data=request.form,
+                all_types=WardType.ALL_TYPES,
+                all_statuses=WardStatus.ALL_STATUSES
+            ), 400
+
+        flash(f"Ward '{ward.ward_name}' ({ward.ward_type}) created successfully with capacity for {ward.capacity} beds.", "success")
+        return redirect(url_for("admin.ward_details", ward_id=ward.ward_id))
+
+    return render_template(
+        "admin/wards/create.html",
+        all_types=WardType.ALL_TYPES,
+        all_statuses=WardStatus.ALL_STATUSES
+    )
+
+
+@admin_bp.route("/wards/<int:ward_id>", methods=["GET"])
+@admin_required
+def ward_details(ward_id):
+    """Administrator detailed view of a ward."""
+    ward = WardService.get_ward_by_id(ward_id)
+    if not ward:
+        flash("Ward record not found.", "danger")
+        return redirect(url_for("admin.wards_list"))
+
+    return render_template("admin/wards/view.html", ward=ward)
+
+
+@admin_bp.route("/wards/<int:ward_id>/edit", methods=["GET", "POST"])
+@admin_required
+def ward_edit(ward_id):
+    """Administrator edit ward form and update handler."""
+    if request.method == "POST":
+        return ward_update(ward_id)
+
+    ward = WardService.get_ward_by_id(ward_id)
+    if not ward:
+        flash("Ward record not found.", "danger")
+        return redirect(url_for("admin.wards_list"))
+
+    return render_template(
+        "admin/wards/edit.html",
+        ward=ward,
+        all_types=WardType.ALL_TYPES,
+        all_statuses=WardStatus.ALL_STATUSES
+    )
+
+
+@admin_bp.route("/wards/<int:ward_id>/update", methods=["POST"])
+@admin_required
+def ward_update(ward_id):
+    """Administrator update ward handler."""
+    ward = WardService.get_ward_by_id(ward_id)
+    if not ward:
+        flash("Ward record not found.", "danger")
+        return redirect(url_for("admin.wards_list"))
+
+    ward_name = request.form.get("ward_name", "").strip()
+    ward_type = request.form.get("ward_type", "").strip()
+    floor = request.form.get("floor", "").strip()
+    block = request.form.get("block", "").strip()
+    capacity = request.form.get("capacity", "").strip()
+    status = request.form.get("status", "").strip()
+
+    updated_ward, errors = WardService.update_ward(
+        ward_id=ward.ward_id,
+        ward_name=ward_name,
+        ward_type=ward_type,
+        floor=floor,
+        block=block,
+        capacity=capacity,
+        status=status
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+        return render_template(
+            "admin/wards/edit.html",
+            ward=ward,
+            form_data=request.form,
+            all_types=WardType.ALL_TYPES,
+            all_statuses=WardStatus.ALL_STATUSES
+        ), 400
+
+    flash(f"Ward '{updated_ward.ward_name}' details updated successfully.", "success")
+    return redirect(url_for("admin.ward_details", ward_id=ward.ward_id))
+
+
+@admin_bp.route("/wards/<int:ward_id>/delete", methods=["POST"])
+@admin_required
+def ward_delete(ward_id):
+    """Administrator delete ward action with safety checks."""
+    success, message = WardService.delete_ward(ward_id)
+    if success:
+        flash(message, "success")
+    else:
+        flash(message, "danger")
+    return redirect(url_for("admin.wards_list"))
+
