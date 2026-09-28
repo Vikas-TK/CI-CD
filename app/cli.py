@@ -8,12 +8,15 @@ from app.models.doctor import Doctor
 from app.models.staff import Staff
 from app.models.appointment import Appointment, AppointmentStatus
 from app.models.room import Room, RoomType, RoomStatus
+from app.models.ward import Ward, WardType, WardStatus
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
 from app.services.room_service import RoomService
+from app.services.ward_service import WardService
+
 
 
 def _seed_sample_users():
@@ -132,6 +135,31 @@ def _seed_sample_rooms():
     return created
 
 
+def _seed_sample_wards():
+    sample_wards = [
+        ("General Ward A", WardType.GENERAL, 1, "Block A", 30, WardStatus.ACTIVE),
+        ("General Ward B", WardType.GENERAL, 1, "Block B", 25, WardStatus.ACTIVE),
+        ("ICU Ward 1", WardType.ICU, 2, "ICU Wing", 12, WardStatus.ACTIVE),
+        ("Pediatric Ward North", WardType.PEDIATRIC, 2, "Children Wing", 20, WardStatus.ACTIVE),
+        ("Emergency Rapid Ward", WardType.EMERGENCY, 1, "Emergency Wing", 15, WardStatus.ACTIVE),
+        ("Surgical Recovery Ward", WardType.SURGICAL, 3, "Surgical Wing", 18, WardStatus.ACTIVE),
+        ("Maternity Care Ward", WardType.MATERNITY, 3, "Women Wing", 20, WardStatus.MAINTENANCE),
+    ]
+    created = 0
+    for wname, wtype, floor, block, cap, status in sample_wards:
+        if not Ward.query.filter_by(ward_name=wname).first():
+            WardService.create_ward(
+                ward_name=wname,
+                ward_type=wtype,
+                floor=floor,
+                block=block,
+                capacity=cap,
+                status=status
+            )
+            created += 1
+    return created
+
+
 def register_cli_commands(app):
     """Registers CLI commands on the Flask application instance."""
 
@@ -178,7 +206,7 @@ def register_cli_commands(app):
 
     @app.cli.command("seed-data")
     def seed_data():
-        """Seeds sample users, doctors, patients, staff, rooms, and appointments for evaluation."""
+        """Seeds sample users, doctors, patients, staff, rooms, wards, and appointments for evaluation."""
         db.create_all()
         created_count = _seed_sample_users()
         _seed_sample_patient()
@@ -186,6 +214,8 @@ def register_cli_commands(app):
         _seed_sample_staff()
         _seed_sample_appointments()
         _seed_sample_rooms()
-        msg = f"Seeded {created_count} demo user accounts, doctor, patient, staff, rooms, and appointments."
+        _seed_sample_wards()
+        msg = f"Seeded {created_count} demo user accounts, doctor, patient, staff, rooms, wards, and appointments."
         click.echo(click.style(msg, fg="green"))
+
 

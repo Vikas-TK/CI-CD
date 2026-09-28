@@ -92,6 +92,22 @@ stateDiagram-v2
   - Staff read-only room inventory (`/staff/rooms`) and room detail view (`/staff/rooms/<id>`) with capacity stats for reception and patient intake coordination.
   - Staff cannot create, edit, or delete room records.
 
+### 2.7 Module 7: Ward Management
+- **Ward Infrastructure Management**: Manages hospital wards (`ward_id`, `ward_name`, `ward_type`, `floor`, `block`, `capacity`, `status`, `created_at`, `updated_at`).
+- **Controlled Ward Types**: `General Ward`, `ICU`, `Emergency Ward`, `Pediatric Ward`, `Maternity Ward`, `Surgical Ward`, `Other`.
+- **Operational Status States**: `Active` (operational), `Inactive` (not accepting assignments), `Maintenance` (temporarily unavailable).
+- **Database Normalization**: Decoupled `patient_id` from the `wards` table to represent a 1-to-many ward-to-patient relationship cleanly for future Admission/Stay management (Module 8).
+- **Capacity & Occupancy Preparedness**: Enforces positive capacity constraints (`capacity > 0`), provides live dashboard status metrics, and prepares capacity validation hooks for future inpatient admissions.
+- **Administrator Ward Management**:
+  - Full ward directory (`/admin/wards`) with multi-field search (Ward ID, Name, Type, Floor, Block) and combinable dropdown filters (Type, Status, Floor, Block).
+  - Create new hospital wards (`/admin/wards/create`) with strict server-side validation and duplicate name rejection.
+  - View ward details (`/admin/wards/<id>`) and update ward configuration (`/admin/wards/<id>/edit`).
+  - Safe ward deletion (`/admin/wards/<id>/delete`) with protection against deleting active or occupied wards.
+  - Live summary metrics (Total Wards, Active, Inactive, Maintenance).
+- **Staff Ward Access**:
+  - Staff read-only ward directory (`/staff/wards`) and ward detail view (`/staff/wards/<id>`) with capacity overviews for clinical and reception workflows.
+  - Staff members cannot create, edit, or delete wards.
+
 ---
 
 ## 3. Technology Stack
@@ -181,6 +197,19 @@ stateDiagram-v2
 | `created_at` | `DATETIME` | `NOT NULL` | Room record creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
 
+### 4.7 `wards` Table
+| Column Name | Data Type | Constraints | Description |
+|---|---|---|---|
+| `ward_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique ward primary key |
+| `ward_name` | `VARCHAR(100)` | `NOT NULL, UNIQUE, INDEX` | Distinct ward name (e.g. `ICU Ward A`, `Pediatric Ward`) |
+| `ward_type` | `VARCHAR(50)` | `NOT NULL, INDEX, DEFAULT 'General Ward'` | `General Ward`, `ICU`, `Emergency Ward`, `Pediatric Ward`, `Maternity Ward`, `Surgical Ward`, `Other` |
+| `floor` | `INTEGER` | `NOT NULL, INDEX` | Floor number |
+| `block` | `VARCHAR(50)` | `NOT NULL, INDEX` | Building block / hospital wing |
+| `capacity` | `INTEGER` | `NOT NULL, DEFAULT 1` | Maximum patient/bed capacity (`capacity > 0`) |
+| `status` | `VARCHAR(20)` | `NOT NULL, INDEX, DEFAULT 'Active'` | `Active`, `Inactive`, `Maintenance` |
+| `created_at` | `DATETIME` | `NOT NULL` | Ward record creation timestamp (UTC) |
+| `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
+
 ---
 
 ## 5. Application Route Access Matrix
@@ -221,6 +250,11 @@ stateDiagram-v2
 | `/admin/rooms/<id>` | `GET` | Administrator | View room details |
 | `/admin/rooms/<id>/edit` | `GET, POST` | Administrator | Edit room configuration |
 | `/admin/rooms/<id>/delete` | `POST` | Administrator | Safe delete room (unoccupied only) |
+| `/admin/wards` | `GET` | Administrator | Ward management & capacity metrics |
+| `/admin/wards/create` | `GET, POST` | Administrator | Create new hospital ward |
+| `/admin/wards/<id>` | `GET` | Administrator | View ward details |
+| `/admin/wards/<id>/edit` | `GET, POST` | Administrator | Edit ward configuration |
+| `/admin/wards/<id>/delete` | `POST` | Administrator | Safe delete ward (inactive/maintenance only) |
 | `/doctor/dashboard` | `GET` | Doctor | Doctor operational portal |
 | `/doctor/profile` | `GET` | Doctor | Doctor self-service profile |
 | `/doctor/profile/edit` | `GET` | Doctor | Doctor self-service edit form |
@@ -241,6 +275,8 @@ stateDiagram-v2
 | `/staff/appointments/<id>/status` | `POST` | Staff | Update appointment status |
 | `/staff/rooms` | `GET` | Staff | Read-only hospital room inventory |
 | `/staff/rooms/<id>` | `GET` | Staff | Read-only room details |
+| `/staff/wards` | `GET` | Staff | Read-only hospital ward inventory |
+| `/staff/wards/<id>` | `GET` | Staff | Read-only ward details |
 | `/patient/dashboard` | `GET` | Patient | Patient portal & appointment overview |
 | `/patient/profile` | `GET` | Patient | Patient medical profile |
 | `/patient/profile/edit` | `GET` | Patient | Patient self-service edit form |
@@ -310,7 +346,7 @@ flask init-db
 # Bootstrap Initial Administrator
 flask create-admin --email admin@hospital.org --password AdminPassword123! --first-name System --last-name Admin --phone +1000000001
 
-# Seed sample users, doctors, staff, patients, and appointments
+# Seed sample users, doctors, staff, patients, appointments, rooms, and wards
 flask seed-data
 ```
 
@@ -345,7 +381,7 @@ flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
 The project uses **GitHub Actions** exclusively (no Jenkins).
 
 ```
-feature/module-5-staff-management
+feature/module-7-ward-management
               |
               | Pull Request
               v
@@ -366,7 +402,7 @@ feature/module-5-staff-management
            SUCCESS
               |
               v
-       STAGING DEPLOY
+        STAGING DEPLOY
               |
               v
           Testing
@@ -384,7 +420,7 @@ feature/module-5-staff-management
      └────────┬─────────┘
               |
               v
-        PRODUCTION
+         PRODUCTION
 ```
 
 ### 8.1 CI Workflow (`.github/workflows/ci.yml`)
@@ -414,4 +450,4 @@ Configure the following secrets in GitHub Repository Settings -> Secrets and Var
 
 - **`main`**: Production-ready code, deploys to production.
 - **`develop`**: Integration branch, deploys to staging.
-- **`feature/module-6-room-management`**: Feature branch for Module 6 implementation.
+- **`feature/module-7-ward-management`**: Feature branch for Module 7 (Ward Management) implementation.

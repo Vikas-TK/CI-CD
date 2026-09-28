@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Ward: {{ ward.ward_name }} - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.wards_list') }}">Ward Management</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.ward_details', ward_id=ward.ward_id) }}">{{ ward.ward_name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h4 class="card-title mb-0 fw-bold text-primary">
+                        <i class="bi bi-pencil-square me-2"></i>Edit Ward: {{ ward.ward_name }}
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('admin.ward_update', ward_id=ward.ward_id) }}" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="ward_name" class="form-label fw-semibold">
+                                    Ward Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="ward_name"
+                                       name="ward_name"
+                                       value="{{ form_data.ward_name if form_data else ward.ward_name }}"
+                                       required>
+                                <div class="form-text">Unique clinical identifier for the ward.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="ward_type" class="form-label fw-semibold">
+                                    Ward Category <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="ward_type" name="ward_type" required>
+                                    {% for wtype in all_types %}
+                                    <option value="{{ wtype }}" {% if (form_data and form_data.ward_type == wtype) or (not form_data and ward.ward_type == wtype) %}selected{% endif %}>
+                                        {{ wtype }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="floor" class="form-label fw-semibold">
+                                    Floor <span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       class="form-control"
+                                       id="floor"
+                                       name="floor"
+                                       value="{{ form_data.floor if form_data else ward.floor }}"
+                                       required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="block" class="form-label fw-semibold">
+                                    Building Block / Wing <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="block"
+                                       name="block"
+                                       value="{{ form_data.block if form_data else ward.block }}"
+                                       required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="capacity" class="form-label fw-semibold">
+                                    Bed Capacity <span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       class="form-control"
+                                       id="capacity"
+                                       name="capacity"
+                                       min="1"
+                                       max="1000"
+                                       value="{{ form_data.capacity if form_data else ward.capacity }}"
+                                       required>
+                                <div class="form-text">Total patient bed capacity.</div>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label for="status" class="form-label fw-semibold">
+                                    Operational Status <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="status" name="status" required>
+                                    {% for st in all_statuses %}
+                                    <option value="{{ st }}" {% if (form_data and form_data.status == st) or (not form_data and ward.status == st) %}selected{% endif %}>
+                                        {{ st }} - {% if st == 'Active' %}Fully Operational & Available{% elif st == 'Inactive' %}Not Accepting New Patients{% else %}Under Maintenance / Sanitization{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                            <a href="{{ url_for('admin.ward_details', ward_id=ward.ward_id) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-circle me-1"></i> Update Ward
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
