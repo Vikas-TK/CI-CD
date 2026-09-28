@@ -88,6 +88,11 @@
                                     <i class="bi bi-door-open me-1"></i> Rooms
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('admin.ward') %}active{% endif %}" href="{{ url_for('admin.wards_list') }}">
+                                    <i class="bi bi-hospital me-1"></i> Wards
+                                </a>
+                            </li>
                         {% elif current_user.is_doctor %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'doctor.dashboard' %}active{% endif %}" href="{{ url_for('doctor.dashboard') }}">
@@ -135,6 +140,12 @@
                                     <i class="bi bi-door-open me-1"></i> Rooms
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('staff.ward') %}active{% endif %}" href="{{ url_for('staff.wards_list') }}">
+                                    <i class="bi bi-hospital me-1"></i> Wards
+                                </a>
+                            </li>
+
                         {% elif current_user.is_patient %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'patient.dashboard' %}active{% endif %}" href="{{ url_for('patient.dashboard') }}">
