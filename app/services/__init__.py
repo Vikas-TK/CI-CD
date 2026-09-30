@@ -5,6 +5,7 @@ from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
 from app.services.room_service import RoomService
 from app.services.ward_service import WardService
+from app.services.admission_service import AdmissionService
 
 __all__ = [
     "UserService",
@@ -13,6 +14,7 @@ __all__ = [
     "StaffService",
     "AppointmentService",
     "RoomService",
-    "WardService"
+    "WardService",
+    "AdmissionService"
 ]
 
