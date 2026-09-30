@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Clinical Stay Chart #ADM{{ "%04d"|format(admission.admission_id) }} - Doctor Portal - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('doctor.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('doctor.admissions_list') }}">Inpatient Admissions</a></li>
+            <li class="breadcrumb-item active" aria-current="page">#ADM{{ "%04d"|format(admission.admission_id) }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary fw-bold">
+                        <i class="bi bi-file-earmark-medical me-2"></i>Inpatient Clinical Chart: #ADM{{ "%04d"|format(admission.admission_id) }}
+                    </h5>
+                    <div>
+                        {% if admission.status == 'Active' %}
+                        <span class="badge bg-success fs-6">Active Stay</span>
+                        {% elif admission.status == 'Discharged' %}
+                        <span class="badge bg-secondary fs-6">Discharged</span>
+                        {% else %}
+                        <span class="badge bg-danger fs-6">Cancelled</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-semibold">Patient</label>
+                            <div class="fs-5 fw-bold text-dark">{{ admission.patient_name }}</div>
+                            <small class="text-muted">Age: {{ admission.patient.age or 'N/A' }} | Gender: {{ admission.patient.gender or 'N/A' }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-semibold">Blood Group</label>
+                            <div class="fs-5 fw-bold text-danger">{{ admission.patient.blood_group or 'Not Provided' }}</div>
+                            <small class="text-muted">Aadhaar: {{ admission.patient.masked_aadhaar }}</small>
+                        </div>
+                    </div>
+
+                    <hr class="text-muted opacity-25">
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-semibold">Ward</label>
+                            <div class="fs-5 fw-semibold text-primary">{{ admission.ward_name }}</div>
+                            <small class="text-muted">{{ admission.ward.ward_type }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-semibold">Room</label>
+                            <div class="fs-5 fw-semibold text-dark">Room {{ admission.room_number }}</div>
+                            <small class="text-muted">{{ admission.room.room_type }} Room</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-semibold">Stay Duration</label>
+                            <div class="fs-5 fw-bold text-info">{{ admission.stay_duration_days }} Day(s)</div>
+                            <small class="text-muted">Check-in: {{ admission.check_in_date.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                    </div>
+
+                    {% if admission.reason %}
+                    <div class="mb-4">
+                        <label class="text-muted small text-uppercase fw-semibold">Admitting Diagnosis / Symptoms</label>
+                        <div class="p-3 bg-light rounded text-dark">{{ admission.reason }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if admission.discharge_notes %}
+                    <div class="mb-3">
+                        <label class="text-muted small text-uppercase fw-semibold">Clinical Notes / Transfer History</label>
+                        <div class="p-3 bg-light rounded text-dark" style="white-space: pre-line;">{{ admission.discharge_notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer bg-white border-0 py-3">
+                    <a href="{{ url_for('doctor.admissions_list') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Inpatient List
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-person-lines-fill me-2"></i>Patient Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2"><strong>Emergency Contact:</strong> {{ admission.patient.emergency_contact_name or 'N/A' }}</div>
+                    <div class="mb-2"><strong>Contact Phone:</strong> {{ admission.patient.emergency_contact_phone or 'N/A' }}</div>
+                    <div class="mb-0"><strong>Primary Complaint:</strong> {{ admission.patient.disease_or_complaint or 'N/A' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

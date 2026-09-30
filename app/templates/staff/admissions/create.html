@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Admit Patient - Staff Portal - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('staff.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('staff.admissions_list') }}">Admissions</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Admit Patient</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-box-arrow-in-right me-2"></i>Patient Inpatient Intake / Admission</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('staff.admission_create') }}">
+                        
+                        <div class="mb-3">
+                            <label for="patient_id" class="form-label fw-semibold">Select Patient <span class="text-danger">*</span></label>
+                            <select name="patient_id" id="patient_id" class="form-select" required>
+                                <option value="">-- Choose Patient Profile --</option>
+                                {% for pat in patients %}
+                                <option value="{{ pat.patient_id }}" {% if form_data and form_data.get('patient_id') == pat.patient_id|string %}selected{% endif %}>
+                                    #PAT{{ "%04d"|format(pat.patient_id) }} - {{ pat.full_name }} ({{ pat.masked_aadhaar }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="ward_id" class="form-label fw-semibold">Target Ward <span class="text-danger">*</span></label>
+                                <select name="ward_id" id="ward_id" class="form-select" required>
+                                    <option value="">-- Choose Active Ward --</option>
+                                    {% for ward in active_wards %}
+                                    <option value="{{ ward.ward_id }}" {% if form_data and form_data.get('ward_id') == ward.ward_id|string %}selected{% endif %}>
+                                        {{ ward.ward_name }} ({{ ward.ward_type }} - Cap: {{ ward.capacity }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="room_id" class="form-label fw-semibold">Available Room <span class="text-danger">*</span></label>
+                                <select name="room_id" id="room_id" class="form-select" required>
+                                    <option value="">-- Choose Available Room --</option>
+                                    {% for room in available_rooms %}
+                                    <option value="{{ room.room_id }}" {% if form_data and form_data.get('room_id') == room.room_id|string %}selected{% endif %}>
+                                        Room {{ room.room_number }} ({{ room.room_type }} - Floor {{ room.floor }}, {{ room.block }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="check_in_date" class="form-label fw-semibold">Check-in Date & Time</label>
+                            <input type="datetime-local" name="check_in_date" id="check_in_date" class="form-control"
+                                   value="{{ form_data.get('check_in_date', '') if form_data else '' }}">
+                            <div class="form-text">Leave blank to use current timestamp.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="reason" class="form-label fw-semibold">Reason for Admission</label>
+                            <textarea name="reason" id="reason" class="form-control" rows="3"
+                                      placeholder="Presenting complaints, attending diagnosis, reason for hospital stay...">{{ form_data.get('reason', '') if form_data else '' }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('staff.admissions_list') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check2-circle me-1"></i> Admit Patient
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

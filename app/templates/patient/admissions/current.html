@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}My Current Inpatient Stay - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('patient.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">My Inpatient Stay</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h1 class="h3 mb-1 text-primary fw-bold">
+                <i class="bi bi-hospital me-2"></i>My Inpatient Stay Information
+            </h1>
+            <p class="text-muted mb-0">View details of your active hospital ward and room allocation.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('patient.admission_history') }}" class="btn btn-outline-primary">
+                <i class="bi bi-clock-history me-1"></i> View Stay History
+            </a>
+        </div>
+    </div>
+
+    {% if admission and admission.is_active %}
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 border-top border-primary border-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-primary">
+                        <i class="bi bi-door-open-fill me-2"></i>Active Hospital Admission
+                    </h5>
+                    <span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>Currently Admitted</span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-semibold">Admission ID</label>
+                            <div class="fs-4 fw-bold text-dark">#ADM{{ "%04d"|format(admission.admission_id) }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-semibold">Check-in Date & Time</label>
+                            <div class="fs-5 fw-semibold text-dark">{{ admission.check_in_date.strftime('%Y-%m-%d %H:%M UTC') }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4 p-3 bg-light rounded">
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-semibold">Assigned Ward</label>
+                            <div class="fs-5 fw-bold text-primary">{{ admission.ward_name }}</div>
+                            <small class="text-muted">{{ admission.ward.ward_type }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-semibold">Assigned Room</label>
+                            <div class="fs-5 fw-bold text-dark">Room {{ admission.room_number }}</div>
+                            <small class="text-muted">Floor {{ admission.room.floor }}, {{ admission.room.block }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-semibold">Stay Duration</label>
+                            <div class="fs-5 fw-bold text-info">{{ admission.stay_duration_days }} Day(s)</div>
+                            <small class="text-muted">Active Inpatient</small>
+                        </div>
+                    </div>
+
+                    {% if admission.reason %}
+                    <div class="mb-3">
+                        <label class="text-muted small text-uppercase fw-semibold">Admission Notes</label>
+                        <div class="p-3 border rounded text-dark">{{ admission.reason }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white border-0 py-3 text-end">
+                    <a href="{{ url_for('patient.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm border-0 text-center py-5">
+        <div class="card-body">
+            <i class="bi bi-hospital display-4 text-muted d-block mb-3"></i>
+            <h5 class="fw-bold text-dark">No Active Hospital Stay</h5>
+            <p class="text-muted mb-4">You are not currently admitted to any hospital ward or room.</p>
+            <a href="{{ url_for('patient.admission_history') }}" class="btn btn-outline-primary">
+                <i class="bi bi-clock-history me-1"></i> View Past Admission History
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
