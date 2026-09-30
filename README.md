@@ -108,6 +108,21 @@ stateDiagram-v2
   - Staff read-only ward directory (`/staff/wards`) and ward detail view (`/staff/wards/<id>`) with capacity overviews for clinical and reception workflows.
   - Staff members cannot create, edit, or delete wards.
 
+### 2.8 Module 8: Patient Admission / Stay Management
+- **Inpatient Stay & Bed Management**: Connects Patients, Rooms, and Wards into an auditable inpatient stay lifecycle (`admission_id`, `patient_id`, `room_id`, `ward_id`, `check_in_date`, `check_out_date`, `status`, `reason`, `notes`, `created_at`, `updated_at`).
+- **Controlled Admission Status States**: `Active`, `Discharged`, `Cancelled`.
+- **Database Normalization**: Decoupled `patient_id` from `rooms` and `wards`. All allocation history is preserved in `admissions` table supporting 1-to-many historical admissions per patient.
+- **Dynamic Ward Occupancy & Capacity Enforcement**: Live ward occupancy calculated on-the-fly (`available_capacity = capacity - active_admission_count`). Prevents admission to full, inactive, or maintenance wards without fake hard-coded occupancy columns.
+- **Atomic Room Allocation & Anti-Double-Booking**: Verifies room `status == "Available"` within database transactions. Successfully admitting a patient transitions room status to `Occupied`; discharging or transferring transitions room status back to `Available`.
+- **Single Active Admission Rule**: Enforces that a patient can have at most one active admission at any given time.
+- **Patient Room Transfer Workflow**: Allows authorized Administrators and Staff to atomically transfer an active inpatient from one room to another, releasing the old room and occupying the new room.
+- **Multi-Parameter Search & Filter Engine**: Search admissions by Admission ID, Patient ID, Patient Name, Room Number, Ward Name, or Status, with combinable dropdown filters.
+- **Role-Based Admission Management**:
+  - **Administrator**: Full hospital admission management (`/admin/admissions`), create admissions (`/admin/admissions/create`), view details (`/admin/admissions/<id>`), discharge patients (`/admin/admissions/<id>/discharge`), cancel admissions (`/admin/admissions/<id>/cancel`), and transfer rooms (`/admin/admissions/<id>/transfer`).
+  - **Staff**: Operational admission management (`/staff/admissions`), create admissions (`/staff/admissions/create`), view admission details (`/staff/admissions/<id>`), and discharge patients (`/staff/admissions/<id>/discharge`).
+  - **Doctor**: Read-only clinical inpatient directory (`/doctor/admissions`) and admission chart (`/doctor/admissions/<id>`).
+  - **Patient**: View personal active inpatient stay (`/patient/admission`) and complete personal admission history (`/patient/admissions/history`).
+
 ---
 
 ## 3. Technology Stack
@@ -210,6 +225,21 @@ stateDiagram-v2
 | `created_at` | `DATETIME` | `NOT NULL` | Ward record creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
 
+### 4.8 `admissions` Table
+| Column Name | Data Type | Constraints | Description |
+|---|---|---|---|
+| `admission_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique admission primary key |
+| `patient_id` | `INTEGER` | `NOT NULL, FOREIGN KEY (patients.patient_id) ON DELETE CASCADE, INDEX` | Foreign key to admitted patient |
+| `room_id` | `INTEGER` | `NOT NULL, FOREIGN KEY (rooms.room_id) ON DELETE RESTRICT, INDEX` | Foreign key to allocated room |
+| `ward_id` | `INTEGER` | `NOT NULL, FOREIGN KEY (wards.ward_id) ON DELETE RESTRICT, INDEX` | Foreign key to assigned ward |
+| `check_in_date` | `DATETIME` | `NOT NULL, INDEX` | Timestamp when patient checked in |
+| `check_out_date` | `DATETIME` | `NULLABLE` | Timestamp when patient checked out |
+| `status` | `VARCHAR(20)` | `NOT NULL, INDEX, DEFAULT 'Active'` | `Active`, `Discharged`, `Cancelled` |
+| `reason` | `TEXT` | `NOT NULL` | Clinical diagnosis or admission reason |
+| `notes` | `TEXT` | `NULLABLE` | Clinical notes or discharge remarks |
+| `created_at` | `DATETIME` | `NOT NULL` | Admission record creation timestamp (UTC) |
+| `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
+
 ---
 
 ## 5. Application Route Access Matrix
@@ -255,6 +285,12 @@ stateDiagram-v2
 | `/admin/wards/<id>` | `GET` | Administrator | View ward details |
 | `/admin/wards/<id>/edit` | `GET, POST` | Administrator | Edit ward configuration |
 | `/admin/wards/<id>/delete` | `POST` | Administrator | Safe delete ward (inactive/maintenance only) |
+| `/admin/admissions` | `GET` | Administrator | Inpatient admission registry & KPI stats |
+| `/admin/admissions/create` | `GET, POST` | Administrator | Admit patient, assign room & ward |
+| `/admin/admissions/<id>` | `GET` | Administrator | View admission chart & history |
+| `/admin/admissions/<id>/discharge` | `POST` | Administrator | Discharge patient & release bed |
+| `/admin/admissions/<id>/cancel` | `POST` | Administrator | Cancel admission record |
+| `/admin/admissions/<id>/transfer` | `GET, POST` | Administrator | Transfer patient to new room |
 | `/doctor/dashboard` | `GET` | Doctor | Doctor operational portal |
 | `/doctor/profile` | `GET` | Doctor | Doctor self-service profile |
 | `/doctor/profile/edit` | `GET` | Doctor | Doctor self-service edit form |
@@ -264,6 +300,8 @@ stateDiagram-v2
 | `/doctor/appointments` | `GET` | Doctor | Doctor consultation queue |
 | `/doctor/appointments/<id>` | `GET` | Doctor | Consultation sheet & actions |
 | `/doctor/appointments/<id>/status` | `POST` | Doctor | Approve/Reject/Complete appointment |
+| `/doctor/admissions` | `GET` | Doctor | Read-only clinical inpatient directory |
+| `/doctor/admissions/<id>` | `GET` | Doctor | Read-only admission details chart |
 | `/staff/dashboard` | `GET` | Staff | Staff operational portal |
 | `/staff/profile` | `GET` | Staff | Staff self-service profile |
 | `/staff/profile/edit` | `GET` | Staff | Staff self-service edit form |
@@ -277,6 +315,10 @@ stateDiagram-v2
 | `/staff/rooms/<id>` | `GET` | Staff | Read-only room details |
 | `/staff/wards` | `GET` | Staff | Read-only hospital ward inventory |
 | `/staff/wards/<id>` | `GET` | Staff | Read-only ward details |
+| `/staff/admissions` | `GET` | Staff | Hospital admission registry & intake queue |
+| `/staff/admissions/create` | `GET, POST` | Staff | Admit patient, assign room & ward |
+| `/staff/admissions/<id>` | `GET` | Staff | View admission details |
+| `/staff/admissions/<id>/discharge` | `POST` | Staff | Discharge patient & release bed |
 | `/patient/dashboard` | `GET` | Patient | Patient portal & appointment overview |
 | `/patient/profile` | `GET` | Patient | Patient medical profile |
 | `/patient/profile/edit` | `GET` | Patient | Patient self-service edit form |
@@ -286,6 +328,8 @@ stateDiagram-v2
 | `/patient/appointments/request` | `GET, POST` | Patient | Book consultation with doctor |
 | `/patient/appointments/<id>` | `GET` | Patient | View appointment status & notes |
 | `/patient/appointments/<id>/cancel` | `POST` | Patient | Cancel pending/approved appointment |
+| `/patient/admission` | `GET` | Patient | View personal active inpatient stay |
+| `/patient/admissions/history` | `GET` | Patient | View personal inpatient stay history |
 | `/pharmacy/dashboard` | `GET` | Pharmacy Manager | Pharmacy inventory portal |
 
 
@@ -346,7 +390,7 @@ flask init-db
 # Bootstrap Initial Administrator
 flask create-admin --email admin@hospital.org --password AdminPassword123! --first-name System --last-name Admin --phone +1000000001
 
-# Seed sample users, doctors, staff, patients, appointments, rooms, and wards
+# Seed sample users, doctors, staff, patients, appointments, rooms, wards, and admissions
 flask seed-data
 ```
 
@@ -381,7 +425,7 @@ flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
 The project uses **GitHub Actions** exclusively (no Jenkins).
 
 ```
-feature/module-7-ward-management
+feature/module-8-admission-management
               |
               | Pull Request
               v
@@ -450,4 +494,5 @@ Configure the following secrets in GitHub Repository Settings -> Secrets and Var
 
 - **`main`**: Production-ready code, deploys to production.
 - **`develop`**: Integration branch, deploys to staging.
-- **`feature/module-7-ward-management`**: Feature branch for Module 7 (Ward Management) implementation.
+- **`feature/module-8-admission-management`**: Feature branch for Module 8 (Patient Admission / Stay Management) implementation.
+
