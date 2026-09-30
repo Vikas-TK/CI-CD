@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Admissions - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Admissions & Inpatient Stays</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h1 class="h3 mb-1 text-primary fw-bold">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Patient Admission & Stay Management
+            </h1>
+            <p class="text-muted mb-0">Admit patients, allocate available rooms and wards, track active inpatient stays, and process discharges.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin.admission_create') }}" class="btn btn-primary shadow-sm">
+                <i class="bi bi-plus-circle me-1"></i> Admit New Patient
+            </a>
+        </div>
+    </div>
+
+    <!-- Live Admission Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 text-center p-3 border-start border-primary border-4">
+                <span class="text-primary small text-uppercase fw-semibold">Active Inpatients</span>
+                <span class="fs-4 fw-bold text-primary mt-1">{{ stats.active }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 text-center p-3 border-start border-success border-4">
+                <span class="text-success small text-uppercase fw-semibold">Discharged Total</span>
+                <span class="fs-4 fw-bold text-success mt-1">{{ stats.discharged }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 text-center p-3 border-start border-info border-4">
+                <span class="text-info small text-uppercase fw-semibold">Available Rooms</span>
+                <span class="fs-4 fw-bold text-info mt-1">{{ stats.available_rooms }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm border-0 text-center p-3 border-start border-warning border-4">
+                <span class="text-warning small text-uppercase fw-semibold">Available Beds</span>
+                <span class="fs-4 fw-bold text-warning mt-1">{{ stats.available_beds }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Combinable Filters -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3">
+            <form method="GET" action="{{ url_for('admin.admissions_list') }}" class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" name="search" class="form-control border-start-0 ps-0"
+                               placeholder="Search Admission #, Patient, Room, Ward..."
+                               value="{{ search_query }}">
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-6">
+                    <select name="status" class="form-select">
+                        <option value="">-- All Statuses --</option>
+                        {% for st in all_statuses %}
+                        <option value="{{ st }}" {% if current_status == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3 col-6">
+                    <select name="ward_id" class="form-select">
+                        <option value="">-- All Active Wards --</option>
+                        {% for w in wards %}
+                        <option value="{{ w.ward_id }}" {% if current_ward_id == w.ward_id %}selected{% endif %}>{{ w.ward_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-filter me-1"></i>Filter
+                    </button>
+                    {% if search_query or current_status or current_ward_id or current_room_id %}
+                    <a href="{{ url_for('admin.admissions_list') }}" class="btn btn-outline-secondary" title="Clear Filters">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admissions Table -->
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Admission ID</th>
+                        <th>Patient</th>
+                        <th>Room</th>
+                        <th>Ward</th>
+                        <th>Check-in Date</th>
+                        <th>Duration / Check-out</th>
+                        <th>Status</th>
+                        <th class="text-end pe-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for adm in admissions %}
+                    <tr>
+                        <td class="ps-3 fw-bold text-primary">#ADM{{ "%04d"|format(adm.admission_id) }}</td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ adm.patient_name }}</div>
+                            <div class="small text-muted">ID: #PAT{{ "%04d"|format(adm.patient_id) }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-door-open me-1"></i>Room {{ adm.room_number }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-primary border">
+                                <i class="bi bi-hospital me-1"></i>{{ adm.ward_name }}
+                            </span>
+                        </td>
+                        <td>
+                            <div>{{ adm.check_in_date.strftime('%Y-%m-%d') }}</div>
+                            <small class="text-muted">{{ adm.check_in_date.strftime('%H:%M UTC') }}</small>
+                        </td>
+                        <td>
+                            {% if adm.is_active %}
+                            <span class="badge bg-info-subtle text-info border border-info">
+                                {{ adm.stay_duration_days }} day(s) active
+                            </span>
+                            {% elif adm.check_out_date %}
+                            <div>{{ adm.check_out_date.strftime('%Y-%m-%d') }}</div>
+                            <small class="text-muted">{{ adm.stay_duration_days }} day(s) stayed</small>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if adm.status == 'Active' %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Active Stay
+                            </span>
+                            {% elif adm.status == 'Discharged' %}
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-box-arrow-right me-1"></i>Discharged
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle me-1"></i>Cancelled
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-3">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('admin.admission_details', admission_id=adm.admission_id) }}"
+                                   class="btn btn-outline-primary" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if adm.is_active %}
+                                <a href="{{ url_for('admin.admission_transfer', admission_id=adm.admission_id) }}"
+                                   class="btn btn-outline-warning" title="Transfer Room/Ward">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inboxes display-6 d-block mb-2 text-muted"></i>
+                            No patient admission records found matching the criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if pagination and pagination.pages > 1 %}
+        <div class="card-footer bg-white border-0 py-3">
+            <nav aria-label="Admissions pagination">
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('admin.admissions_list', page=pagination.prev_num, search=search_query, status=current_status, ward_id=current_ward_id) }}">
+                            &laquo; Previous
+                        </a>
+                    </li>
+                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if p %}
+                            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.admissions_list', page=p, search=search_query, status=current_status, ward_id=current_ward_id) }}">{{ p }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('admin.admissions_list', page=pagination.next_num, search=search_query, status=current_status, ward_id=current_ward_id) }}">
+                            Next &raquo;
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

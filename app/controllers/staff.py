@@ -1,14 +1,17 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import current_user
+from app.models.patient import Patient
 from app.models.appointment import AppointmentStatus
-from app.models.room import RoomType, RoomStatus
-from app.models.ward import WardType, WardStatus
+from app.models.room import Room, RoomType, RoomStatus
+from app.models.ward import Ward, WardType, WardStatus
+from app.models.admission import Admission, AdmissionStatus
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
 from app.services.room_service import RoomService
 from app.services.ward_service import WardService
+from app.services.admission_service import AdmissionService
 from app.utils.decorators import staff_required
 
 staff_bp = Blueprint("staff", __name__)
@@ -22,13 +25,15 @@ def dashboard():
     appointment_stats = AppointmentService.get_hospital_appointment_stats()
     room_stats = RoomService.get_room_stats()
     ward_stats = WardService.get_ward_stats()
+    admission_stats = AdmissionService.get_admission_stats()
     return render_template(
         "staff/dashboard.html",
         user=current_user,
         staff=staff_profile,
         stats=appointment_stats,
         room_stats=room_stats,
-        ward_stats=ward_stats
+        ward_stats=ward_stats,
+        admission_stats=admission_stats
     )
 
 
@@ -317,4 +322,136 @@ def ward_details(ward_id):
         return redirect(url_for("staff.wards_list"))
 
     return render_template("staff/wards/view.html", ward=ward, is_readonly=True)
+
+
+# ==============================================================================
+# MODULE 8: STAFF PATIENT ADMISSION / STAY MANAGEMENT
+# ==============================================================================
+
+@staff_bp.route("/admissions", methods=["GET"])
+@staff_required
+def admissions_list():
+    """Staff view of patient admission directory with status and ward filters."""
+    search_query = request.args.get("search", "").strip()
+    status_filter = request.args.get("status", "").strip()
+    ward_filter = request.args.get("ward_id", type=int)
+    room_filter = request.args.get("room_id", type=int)
+    patient_filter = request.args.get("patient_id", type=int)
+    page = request.args.get("page", 1, type=int)
+
+    pagination = AdmissionService.get_all_admissions(
+        status=status_filter or None,
+        ward_id=ward_filter,
+        room_id=room_filter,
+        patient_id=patient_filter,
+        search=search_query or None,
+        page=page,
+        per_page=12
+    )
+    admissions = pagination.items
+    stats = AdmissionService.get_admission_stats()
+    wards = Ward.query.filter_by(status=WardStatus.ACTIVE).order_by(Ward.ward_name.asc()).all()
+    rooms = Room.query.order_by(Room.floor.asc(), Room.room_number.asc()).all()
+
+    return render_template(
+        "staff/admissions/index.html",
+        admissions=admissions,
+        pagination=pagination,
+        stats=stats,
+        wards=wards,
+        rooms=rooms,
+        search_query=search_query,
+        current_status=status_filter,
+        current_ward_id=ward_filter,
+        current_room_id=room_filter,
+        all_statuses=AdmissionStatus.ALL_STATUSES
+    )
+
+
+@staff_bp.route("/admissions/create", methods=["GET", "POST"])
+@staff_required
+def admission_create():
+    """Staff interface to admit a patient to an available room and active ward."""
+    if request.method == "POST":
+        patient_id = request.form.get("patient_id", "").strip()
+        room_id = request.form.get("room_id", "").strip()
+        ward_id = request.form.get("ward_id", "").strip()
+        check_in_date = request.form.get("check_in_date", "").strip()
+        reason = request.form.get("reason", "").strip()
+
+        admission, errors = AdmissionService.admit_patient(
+            patient_id=patient_id,
+            room_id=room_id,
+            ward_id=ward_id,
+            check_in_date=check_in_date or None,
+            reason=reason or None
+        )
+
+        if errors:
+            for err in errors:
+                flash(err, "danger")
+            patients = Patient.query.all()
+            available_rooms = Room.query.filter_by(status=RoomStatus.AVAILABLE).order_by(Room.floor.asc(), Room.room_number.asc()).all()
+            active_wards = Ward.query.filter_by(status=WardStatus.ACTIVE).order_by(Ward.ward_name.asc()).all()
+            return render_template(
+                "staff/admissions/create.html",
+                patients=patients,
+                available_rooms=available_rooms,
+                active_wards=active_wards,
+                form_data=request.form
+            ), 400
+
+        flash(
+            f"Patient '{admission.patient_name}' successfully admitted (#ADM{admission.admission_id:04d}) to Room {admission.room_number} ({admission.ward_name}).",
+            "success"
+        )
+        return redirect(url_for("staff.admission_details", admission_id=admission.admission_id))
+
+    patients = Patient.query.all()
+    available_rooms = Room.query.filter_by(status=RoomStatus.AVAILABLE).order_by(Room.floor.asc(), Room.room_number.asc()).all()
+    active_wards = Ward.query.filter_by(status=WardStatus.ACTIVE).order_by(Ward.ward_name.asc()).all()
+
+    return render_template(
+        "staff/admissions/create.html",
+        patients=patients,
+        available_rooms=available_rooms,
+        active_wards=active_wards
+    )
+
+
+@staff_bp.route("/admissions/<int:admission_id>", methods=["GET"])
+@staff_required
+def admission_details(admission_id):
+    """Staff detailed view of an admission record."""
+    admission = AdmissionService.get_admission_by_id(admission_id)
+    if not admission:
+        flash("Admission record not found.", "danger")
+        return redirect(url_for("staff.admissions_list"))
+
+    return render_template("staff/admissions/view.html", admission=admission)
+
+
+@staff_bp.route("/admissions/<int:admission_id>/discharge", methods=["POST"])
+@staff_required
+def admission_discharge(admission_id):
+    """Staff discharge patient action handler."""
+    discharge_notes = request.form.get("discharge_notes", "").strip()
+    check_out_date = request.form.get("check_out_date", "").strip()
+
+    admission, errors = AdmissionService.discharge_patient(
+        admission_id=admission_id,
+        check_out_date=check_out_date or None,
+        discharge_notes=discharge_notes or None
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+    else:
+        flash(
+            f"Patient '{admission.patient_name}' discharged successfully. Room {admission.room_number} is now Available.",
+            "success"
+        )
+
+    return redirect(url_for("staff.admission_details", admission_id=admission_id))
 

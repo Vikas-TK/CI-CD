@@ -1,9 +1,11 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import current_user
 from app.models.appointment import AppointmentStatus
+from app.models.admission import Admission, AdmissionStatus
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.appointment_service import AppointmentService
+from app.services.admission_service import AdmissionService
 from app.utils.decorators import patient_required
 
 patient_bp = Blueprint("patient", __name__)
@@ -16,12 +18,14 @@ def dashboard():
     patient = PatientService.get_patient_by_user_id(current_user.user_id)
     stats = AppointmentService.get_patient_appointment_stats(patient.patient_id) if patient else {}
     recent_appointments = AppointmentService.get_patient_appointments(patient.patient_id)[:5] if patient else []
+    active_admission = AdmissionService.get_active_admission_for_patient(patient.patient_id) if patient else None
     return render_template(
         "patient/dashboard.html",
         user=current_user,
         patient=patient,
         stats=stats,
-        recent_appointments=recent_appointments
+        recent_appointments=recent_appointments,
+        active_admission=active_admission
     )
 
 
@@ -276,3 +280,41 @@ def cancel_appointment(appointment_id):
         flash(f"Appointment #{appointment_id} has been cancelled.", "info")
 
     return redirect(url_for("patient.list_appointments"))
+
+
+# ---------------------------------------------------------
+# PATIENT INPATIENT STAY / ADMISSION (MODULE 8)
+# ---------------------------------------------------------
+
+@patient_bp.route("/admission", methods=["GET"])
+@patient_required
+def current_admission():
+    """Patient view of their own current active admission / inpatient stay."""
+    patient = PatientService.get_patient_by_user_id(current_user.user_id)
+    if not patient:
+        flash("Please complete your patient profile first.", "info")
+        return redirect(url_for("patient.complete_profile"))
+
+    active_adm = AdmissionService.get_active_admission_for_patient(patient.patient_id)
+    return render_template("patient/admissions/current.html", patient=patient, admission=active_adm)
+
+
+@patient_bp.route("/admissions/history", methods=["GET"])
+@patient_required
+def admission_history():
+    """Patient view of their entire admission and inpatient stay history."""
+    patient = PatientService.get_patient_by_user_id(current_user.user_id)
+    if not patient:
+        flash("Please complete your patient profile first.", "info")
+        return redirect(url_for("patient.complete_profile"))
+
+    page = request.args.get("page", 1, type=int)
+    pagination = AdmissionService.get_patient_admission_history(patient.patient_id, page=page, per_page=10)
+    admissions = pagination.items if pagination else []
+
+    return render_template(
+        "patient/admissions/history.html",
+        patient=patient,
+        admissions=admissions,
+        pagination=pagination
+    )

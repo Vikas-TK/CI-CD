@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Admission #ADM{{ "%04d"|format(admission.admission_id) }} - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.admissions_list') }}">Admissions</a></li>
+            <li class="breadcrumb-item active" aria-current="page">#ADM{{ "%04d"|format(admission.admission_id) }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Main Admission Summary Card -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 text-primary fw-bold">
+                            <i class="bi bi-file-earmark-medical me-2"></i>Inpatient Stay Chart: #ADM{{ "%04d"|format(admission.admission_id) }}
+                        </h5>
+                    </div>
+                    <div>
+                        {% if admission.status == 'Active' %}
+                        <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i>Active Stay</span>
+                        {% elif admission.status == 'Discharged' %}
+                        <span class="badge bg-secondary fs-6"><i class="bi bi-box-arrow-right me-1"></i>Discharged</span>
+                        {% else %}
+                        <span class="badge bg-danger fs-6"><i class="bi bi-x-circle me-1"></i>Cancelled</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-semibold">Patient Name</label>
+                            <div class="fs-5 fw-bold text-dark">{{ admission.patient_name }}</div>
+                            <small class="text-muted">Profile ID: #PAT{{ "%04d"|format(admission.patient_id) }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-semibold">Aadhaar (Masked)</label>
+                            <div class="fs-5 fw-semibold">{{ admission.patient.masked_aadhaar }}</div>
+                            <small class="text-muted">Blood Group: {{ admission.patient.blood_group or 'Not Recorded' }}</small>
+                        </div>
+                    </div>
+
+                    <hr class="text-muted opacity-25">
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-semibold">Assigned Ward</label>
+                            <div class="fs-5 fw-semibold text-primary">{{ admission.ward_name }}</div>
+                            <small class="text-muted">{{ admission.ward.ward_type }} (Floor {{ admission.ward.floor }}, {{ admission.ward.block }})</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-semibold">Assigned Room</label>
+                            <div class="fs-5 fw-semibold text-dark">Room {{ admission.room_number }}</div>
+                            <small class="text-muted">{{ admission.room.room_type }} Room</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-semibold">Stay Duration</label>
+                            <div class="fs-5 fw-bold text-info">{{ admission.stay_duration_days }} Day(s)</div>
+                            <small class="text-muted">Since {{ admission.check_in_date.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                    </div>
+
+                    <hr class="text-muted opacity-25">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-semibold">Check-in Date & Time</label>
+                            <div class="fw-semibold">{{ admission.check_in_date.strftime('%Y-%m-%d %H:%M UTC') }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-semibold">Check-out Date & Time</label>
+                            <div class="fw-semibold">
+                                {% if admission.check_out_date %}
+                                {{ admission.check_out_date.strftime('%Y-%m-%d %H:%M UTC') }}
+                                {% else %}
+                                <span class="text-success">Currently Admitted (Active)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if admission.reason %}
+                    <div class="mb-3">
+                        <label class="text-muted small text-uppercase fw-semibold">Reason for Admission / Clinical Diagnosis</label>
+                        <div class="p-3 bg-light rounded text-dark">{{ admission.reason }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if admission.discharge_notes %}
+                    <div class="mb-3">
+                        <label class="text-muted small text-uppercase fw-semibold">Discharge & Transfer Clinical Remarks</label>
+                        <div class="p-3 bg-light rounded text-dark" style="white-space: pre-line;">{{ admission.discharge_notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('admin.admissions_list') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Admissions
+                    </a>
+
+                    {% if admission.is_active %}
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('admin.admission_transfer', admission_id=admission.admission_id) }}" class="btn btn-outline-warning">
+                            <i class="bi bi-arrow-left-right me-1"></i> Transfer Room/Ward
+                        </a>
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#dischargeModal">
+                            <i class="bi bi-box-arrow-right me-1"></i> Discharge Patient
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                            <i class="bi bi-x-circle me-1"></i> Cancel
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Patient Information -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-person-vcard me-2"></i>Patient Contact</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2"><strong>Phone:</strong> {{ admission.patient.user.phone_number }}</div>
+                    <div class="mb-2"><strong>Email:</strong> {{ admission.patient.user.email }}</div>
+                    <div class="mb-2"><strong>Emergency Contact:</strong> {{ admission.patient.emergency_contact_name or 'Not specified' }} ({{ admission.patient.emergency_contact_phone or 'N/A' }})</div>
+                    <div class="mb-0"><strong>Address:</strong> {{ admission.patient.address or 'Not recorded' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Discharge Confirmation Modal -->
+{% if admission.is_active %}
+<div class="modal fade" id="dischargeModal" tabindex="-1" aria-labelledby="dischargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold" id="dischargeModalLabel">
+                    <i class="bi bi-box-arrow-right me-2"></i>Discharge Inpatient
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.admission_discharge', admission_id=admission.admission_id) }}">
+                <div class="modal-body p-4">
+                    <p>Are you sure you want to discharge <strong>{{ admission.patient_name }}</strong> from <strong>Room {{ admission.room_number }}</strong>?</p>
+                    <div class="alert alert-info py-2 small">
+                        Discharging will release <strong>Room {{ admission.room_number }}</strong> to <em>Available</em> and free bed capacity in <strong>{{ admission.ward_name }}</strong>.
+                    </div>
+                    <div class="mb-3">
+                        <label for="discharge_notes" class="form-label fw-semibold">Discharge Summary / Physician Remarks</label>
+                        <textarea name="discharge_notes" id="discharge_notes" class="form-control" rows="3" placeholder="Condition upon discharge, discharge medications, follow-up instructions..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check2-circle me-1"></i> Confirm Discharge
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold" id="cancelModalLabel">
+                    <i class="bi bi-x-circle me-2"></i>Cancel Admission
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.admission_cancel', admission_id=admission.admission_id) }}">
+                <div class="modal-body p-4">
+                    <p>Cancel active admission <strong>#ADM{{ "%04d"|format(admission.admission_id) }}</strong>?</p>
+                    <div class="mb-3">
+                        <label for="cancellation_reason" class="form-label fw-semibold">Reason for Cancellation <span class="text-danger">*</span></label>
+                        <input type="text" name="cancellation_reason" id="cancellation_reason" class="form-control" placeholder="Booking error, patient did not arrive, etc." required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

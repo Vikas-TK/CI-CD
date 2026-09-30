@@ -5,6 +5,7 @@ from app.models.staff import Staff
 from app.models.appointment import Appointment, AppointmentStatus
 from app.models.room import Room, RoomType, RoomStatus
 from app.models.ward import Ward, WardType, WardStatus
+from app.models.admission import Admission, AdmissionStatus
 
 __all__ = [
     "User",
@@ -19,6 +20,8 @@ __all__ = [
     "RoomStatus",
     "Ward",
     "WardType",
-    "WardStatus"
+    "WardStatus",
+    "Admission",
+    "AdmissionStatus"
 ]
 

@@ -93,6 +93,11 @@
                                     <i class="bi bi-hospital me-1"></i> Wards
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('admin.admission') %}active{% endif %}" href="{{ url_for('admin.admissions_list') }}">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i> Admissions
+                                </a>
+                            </li>
                         {% elif current_user.is_doctor %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'doctor.dashboard' %}active{% endif %}" href="{{ url_for('doctor.dashboard') }}">
@@ -112,6 +117,11 @@
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint and request.endpoint.startswith('doctor.patient') %}active{% endif %}" href="{{ url_for('doctor.patients_list') }}">
                                     <i class="bi bi-person-lines-fill me-1"></i> Patient Directory
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('doctor.admission') %}active{% endif %}" href="{{ url_for('doctor.admissions_list') }}">
+                                    <i class="bi bi-hospital me-1"></i> Inpatients
                                 </a>
                             </li>
                         {% elif current_user.is_staff %}
@@ -145,11 +155,21 @@
                                     <i class="bi bi-hospital me-1"></i> Wards
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('staff.admission') %}active{% endif %}" href="{{ url_for('staff.admissions_list') }}">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i> Admissions
+                                </a>
+                            </li>
 
                         {% elif current_user.is_patient %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'patient.dashboard' %}active{% endif %}" href="{{ url_for('patient.dashboard') }}">
                                     <i class="bi bi-heart-pulse me-1"></i> Patient Portal
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('patient.current_admission') or request.endpoint.startswith('patient.admission_history') %}active{% endif %}" href="{{ url_for('patient.current_admission') }}">
+                                    <i class="bi bi-hospital me-1"></i> My Inpatient Stay
                                 </a>
                             </li>
                             <li class="nav-item">

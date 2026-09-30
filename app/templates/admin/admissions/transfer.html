@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Transfer Patient - Admission #ADM{{ "%04d"|format(admission.admission_id) }} - MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.admissions_list') }}">Admissions</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.admission_details', admission_id=admission.admission_id) }}">#ADM{{ "%04d"|format(admission.admission_id) }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Transfer Patient</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-warning text-dark py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-arrow-left-right me-2"></i>Transfer Patient to Another Room / Ward</h5>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Current Allocation Summary -->
+                    <div class="alert alert-light border mb-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="text-muted small text-uppercase fw-semibold">Patient</div>
+                                <div class="fw-bold">{{ admission.patient_name }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small text-uppercase fw-semibold">Current Location</div>
+                                <div class="fw-bold text-primary">Room {{ admission.room_number }} ({{ admission.ward_name }})</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('admin.admission_transfer', admission_id=admission.admission_id) }}">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="new_ward_id" class="form-label fw-semibold">Target Ward</label>
+                                <select name="new_ward_id" id="new_ward_id" class="form-select">
+                                    {% for ward in active_wards %}
+                                    <option value="{{ ward.ward_id }}" {% if ward.ward_id == admission.ward_id %}selected{% endif %}>
+                                        {{ ward.ward_name }} ({{ ward.ward_type }} - Cap: {{ ward.capacity }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="new_room_id" class="form-label fw-semibold">Target Room <span class="text-danger">*</span></label>
+                                <select name="new_room_id" id="new_room_id" class="form-select" required>
+                                    <option value="">-- Choose New Available Room --</option>
+                                    {% for room in available_rooms %}
+                                    <option value="{{ room.room_id }}" {% if room.room_id == admission.room_id %}disabled{% endif %}>
+                                        Room {{ room.room_number }} ({{ room.room_type }} - Floor {{ room.floor }}, {{ room.block }}) {% if room.room_id == admission.room_id %}(Current){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="transfer_notes" class="form-label fw-semibold">Reason for Transfer</label>
+                            <textarea name="transfer_notes" id="transfer_notes" class="form-control" rows="3" placeholder="Condition improved, transferred to ICU/General, patient request, etc."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('admin.admission_details', admission_id=admission.admission_id) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-warning px-4">
+                                <i class="bi bi-arrow-left-right me-1"></i> Execute Transfer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
