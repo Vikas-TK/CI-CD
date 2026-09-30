@@ -6,6 +6,7 @@ from app.models.staff import Staff
 from app.models.appointment import AppointmentStatus
 from app.models.room import Room, RoomType, RoomStatus
 from app.models.ward import Ward, WardType, WardStatus
+from app.models.admission import Admission, AdmissionStatus
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
@@ -13,6 +14,7 @@ from app.services.staff_service import StaffService
 from app.services.appointment_service import AppointmentService
 from app.services.room_service import RoomService
 from app.services.ward_service import WardService
+from app.services.admission_service import AdmissionService
 from app.utils.decorators import admin_required
 
 
@@ -35,6 +37,7 @@ def dashboard():
     appointment_stats = AppointmentService.get_hospital_appointment_stats()
     room_stats = RoomService.get_room_stats()
     ward_stats = WardService.get_ward_stats()
+    admission_stats = AdmissionService.get_admission_stats()
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
 
     return render_template(
@@ -50,6 +53,7 @@ def dashboard():
         appointment_stats=appointment_stats,
         room_stats=room_stats,
         ward_stats=ward_stats,
+        admission_stats=admission_stats,
         recent_users=recent_users
     )
 
@@ -984,4 +988,212 @@ def ward_delete(ward_id):
     else:
         flash(message, "danger")
     return redirect(url_for("admin.wards_list"))
+
+
+# ==============================================================================
+# MODULE 8: ADMINISTRATOR PATIENT ADMISSION / STAY MANAGEMENT
+# ==============================================================================
+
+@admin_bp.route("/admissions", methods=["GET"])
+@admin_required
+def admissions_list():
+    """Administrator Admission directory with KPI stats, multi-field search, and combinable filters."""
+    search_query = request.args.get("search", "").strip()
+    status_filter = request.args.get("status", "").strip()
+    ward_filter = request.args.get("ward_id", type=int)
+    room_filter = request.args.get("room_id", type=int)
+    patient_filter = request.args.get("patient_id", type=int)
+    page = request.args.get("page", 1, type=int)
+
+    pagination = AdmissionService.get_all_admissions(
+        status=status_filter or None,
+        ward_id=ward_filter,
+        room_id=room_filter,
+        patient_id=patient_filter,
+        search=search_query or None,
+        page=page,
+        per_page=12
+    )
+    admissions = pagination.items
+    stats = AdmissionService.get_admission_stats()
+    wards = Ward.query.filter_by(status=WardStatus.ACTIVE).order_by(Ward.ward_name.asc()).all()
+    rooms = Room.query.order_by(Room.floor.asc(), Room.room_number.asc()).all()
+
+    return render_template(
+        "admin/admissions/index.html",
+        admissions=admissions,
+        pagination=pagination,
+        stats=stats,
+        wards=wards,
+        rooms=rooms,
+        search_query=search_query,
+        current_status=status_filter,
+        current_ward_id=ward_filter,
+        current_room_id=room_filter,
+        all_statuses=AdmissionStatus.ALL_STATUSES
+    )
+
+
+@admin_bp.route("/admissions/create", methods=["GET", "POST"])
+@admin_required
+def admission_create():
+    """Administrator form and handler to admit a patient to an available room and active ward."""
+    if request.method == "POST":
+        patient_id = request.form.get("patient_id", "").strip()
+        room_id = request.form.get("room_id", "").strip()
+        ward_id = request.form.get("ward_id", "").strip()
+        check_in_date = request.form.get("check_in_date", "").strip()
+        reason = request.form.get("reason", "").strip()
+
+        admission, errors = AdmissionService.admit_patient(
+            patient_id=patient_id,
+            room_id=room_id,
+            ward_id=ward_id,
+            check_in_date=check_in_date or None,
+            reason=reason or None
+        )
+
+        if errors:
+            for err in errors:
+                flash(err, "danger")
+            # Re-fetch form dependencies
+            patients = Patient.query.all()
+            available_rooms = Room.query.filter_by(status=RoomStatus.AVAILABLE).order_by(Room.floor.asc(), Room.room_number.asc()).all()
+            active_wards = Ward.query.filter_by(status=WardStatus.ACTIVE).order_by(Ward.ward_name.asc()).all()
+            return render_template(
+                "admin/admissions/create.html",
+                patients=patients,
+                available_rooms=available_rooms,
+                active_wards=active_wards,
+                form_data=request.form
+            ), 400
+
+        flash(
+            f"Patient '{admission.patient_name}' successfully admitted (#ADM{admission.admission_id:04d}) to Room {admission.room_number} ({admission.ward_name}).",
+            "success"
+        )
+        return redirect(url_for("admin.admission_details", admission_id=admission.admission_id))
+
+    patients = Patient.query.all()
+    available_rooms = Room.query.filter_by(status=RoomStatus.AVAILABLE).order_by(Room.floor.asc(), Room.room_number.asc()).all()
+    active_wards = Ward.query.filter_by(status=WardStatus.ACTIVE).order_by(Ward.ward_name.asc()).all()
+
+    return render_template(
+        "admin/admissions/create.html",
+        patients=patients,
+        available_rooms=available_rooms,
+        active_wards=active_wards
+    )
+
+
+@admin_bp.route("/admissions/<int:admission_id>", methods=["GET"])
+@admin_required
+def admission_details(admission_id):
+    """Administrator view of detailed admission and inpatient stay chart."""
+    admission = AdmissionService.get_admission_by_id(admission_id)
+    if not admission:
+        flash("Admission record not found.", "danger")
+        return redirect(url_for("admin.admissions_list"))
+
+    return render_template("admin/admissions/view.html", admission=admission)
+
+
+@admin_bp.route("/admissions/<int:admission_id>/discharge", methods=["POST"])
+@admin_required
+def admission_discharge(admission_id):
+    """Administrator discharge patient action handler."""
+    discharge_notes = request.form.get("discharge_notes", "").strip()
+    check_out_date = request.form.get("check_out_date", "").strip()
+
+    admission, errors = AdmissionService.discharge_patient(
+        admission_id=admission_id,
+        check_out_date=check_out_date or None,
+        discharge_notes=discharge_notes or None
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+    else:
+        flash(
+            f"Patient '{admission.patient_name}' discharged successfully. Room {admission.room_number} is now Available.",
+            "success"
+        )
+
+    return redirect(url_for("admin.admission_details", admission_id=admission_id))
+
+
+@admin_bp.route("/admissions/<int:admission_id>/cancel", methods=["POST"])
+@admin_required
+def admission_cancel(admission_id):
+    """Administrator cancel admission action handler."""
+    reason = request.form.get("cancellation_reason", "").strip()
+
+    admission, errors = AdmissionService.cancel_admission(
+        admission_id=admission_id,
+        reason=reason or None
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+    else:
+        flash(f"Admission #ADM{admission.admission_id:04d} was cancelled and Room {admission.room_number} was released.", "warning")
+
+    return redirect(url_for("admin.admission_details", admission_id=admission_id))
+
+
+@admin_bp.route("/admissions/<int:admission_id>/transfer", methods=["GET", "POST"])
+@admin_required
+def admission_transfer(admission_id):
+    """Administrator form and handler to transfer an active patient to another room/ward."""
+    admission = AdmissionService.get_admission_by_id(admission_id)
+    if not admission:
+        flash("Admission record not found.", "danger")
+        return redirect(url_for("admin.admissions_list"))
+
+    if not admission.is_active:
+        flash(f"Cannot transfer patient for inactive admission (status: '{admission.status}').", "danger")
+        return redirect(url_for("admin.admission_details", admission_id=admission.admission_id))
+
+    if request.method == "POST":
+        new_room_id = request.form.get("new_room_id", "").strip()
+        new_ward_id = request.form.get("new_ward_id", "").strip()
+        transfer_notes = request.form.get("transfer_notes", "").strip()
+
+        transferred_adm, errors = AdmissionService.transfer_patient(
+            admission_id=admission_id,
+            new_room_id=new_room_id,
+            new_ward_id=new_ward_id or None,
+            transfer_notes=transfer_notes or None
+        )
+
+        if errors:
+            for err in errors:
+                flash(err, "danger")
+            available_rooms = Room.query.filter(or_(Room.status == RoomStatus.AVAILABLE, Room.room_id == admission.room_id)).all()
+            active_wards = Ward.query.filter_by(status=WardStatus.ACTIVE).all()
+            return render_template(
+                "admin/admissions/transfer.html",
+                admission=admission,
+                available_rooms=available_rooms,
+                active_wards=active_wards,
+                form_data=request.form
+            ), 400
+
+        flash(
+            f"Patient '{transferred_adm.patient_name}' transferred successfully to Room {transferred_adm.room_number} ({transferred_adm.ward_name}).",
+            "success"
+        )
+        return redirect(url_for("admin.admission_details", admission_id=admission.admission_id))
+
+    available_rooms = Room.query.filter(or_(Room.status == RoomStatus.AVAILABLE, Room.room_id == admission.room_id)).all()
+    active_wards = Ward.query.filter_by(status=WardStatus.ACTIVE).all()
+
+    return render_template(
+        "admin/admissions/transfer.html",
+        admission=admission,
+        available_rooms=available_rooms,
+        active_wards=active_wards
+    )
 

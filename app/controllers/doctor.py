@@ -1,9 +1,13 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import current_user
 from app.models.appointment import AppointmentStatus
+from app.models.admission import Admission, AdmissionStatus
+from app.models.ward import Ward, WardStatus
+from app.models.room import Room
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.appointment_service import AppointmentService
+from app.services.admission_service import AdmissionService
 from app.utils.decorators import doctor_required
 
 doctor_bp = Blueprint("doctor", __name__)
@@ -200,3 +204,50 @@ def update_status(appointment_id):
         flash(f"Appointment #{appointment_id} updated to '{new_status}'.", "success")
 
     return redirect(url_for("doctor.view_appointment", appointment_id=appointment_id))
+
+
+# ---------------------------------------------------------
+# ADMISSION MANAGEMENT - CLINICAL READ-ONLY VIEW (MODULE 8)
+# ---------------------------------------------------------
+
+@doctor_bp.route("/admissions", methods=["GET"])
+@doctor_required
+def admissions_list():
+    """Doctor view of hospital inpatient admissions for clinical workflow coordination."""
+    search_query = request.args.get("search", "").strip()
+    status_filter = request.args.get("status", "").strip()
+    ward_filter = request.args.get("ward_id", type=int)
+    page = request.args.get("page", 1, type=int)
+
+    pagination = AdmissionService.get_all_admissions(
+        status=status_filter or None,
+        ward_id=ward_filter,
+        search=search_query or None,
+        page=page,
+        per_page=12
+    )
+    admissions = pagination.items
+    wards = Ward.query.filter_by(status=WardStatus.ACTIVE).order_by(Ward.ward_name.asc()).all()
+
+    return render_template(
+        "doctor/admissions/index.html",
+        admissions=admissions,
+        pagination=pagination,
+        wards=wards,
+        search_query=search_query,
+        current_status=status_filter,
+        current_ward_id=ward_filter,
+        all_statuses=AdmissionStatus.ALL_STATUSES
+    )
+
+
+@doctor_bp.route("/admissions/<int:admission_id>", methods=["GET"])
+@doctor_required
+def admission_details(admission_id):
+    """Doctor clinical view of specific inpatient admission details."""
+    admission = AdmissionService.get_admission_by_id(admission_id)
+    if not admission:
+        flash("Admission record not found.", "danger")
+        return redirect(url_for("doctor.admissions_list"))
+
+    return render_template("doctor/admissions/view.html", admission=admission)
