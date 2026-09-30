@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import current_user
+from sqlalchemy import or_
 from app.models.user import User, Role
 from app.models.patient import Patient
 from app.models.staff import Staff
