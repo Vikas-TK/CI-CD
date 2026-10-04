@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Prescription #RX{{ "%04d"|format(prescription.prescription_id) }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="d-print-none">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('doctor.dashboard') }}">Doctor Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('doctor.prescriptions_list') }}">Prescriptions</a></li>
+            <li class="breadcrumb-item active" aria-current="page">#RX{{ "%04d"|format(prescription.prescription_id) }}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <!-- Prescription Card (Formatted for screen and printing) -->
+            <div class="card shadow-sm border-0 mb-4 printable-rx">
+                <!-- Card Header with Hospital Banner -->
+                <div class="card-header bg-white border-bottom py-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="bg-primary text-white p-2 rounded-3 d-inline-flex align-items-center justify-content-center">
+                                    <i class="bi bi-hospital fs-4"></i>
+                                </span>
+                                <div>
+                                    <h4 class="mb-0 fw-bold text-primary">MediCare Hospital</h4>
+                                    <small class="text-muted">Clinical Health & Inpatient Services</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge fs-6 {% if prescription.status == 'Active' %}bg-success{% elif prescription.status == 'Completed' %}bg-info{% else %}bg-danger{% endif %} mb-1">
+                                {{ prescription.status }}
+                            </span>
+                            <div class="fw-bold text-dark">RX: #RX{{ "%04d"|format(prescription.prescription_id) }}</div>
+                            <small class="text-muted">Date: {{ prescription.formatted_date }}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- Doctor & Patient Metadata Row -->
+                    <div class="row g-3 p-3 bg-light rounded-3 mb-4">
+                        <div class="col-md-6 border-end-md">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Prescribing Doctor</span>
+                            <div class="fw-bold text-dark fs-5">Dr. {{ prescription.doctor_name }}</div>
+                            <div class="text-primary small fw-semibold">{{ prescription.doctor_specialization }}</div>
+                            <small class="text-muted">Doctor ID: #DOC{{ "%04d"|format(prescription.doctor_id) }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Patient Details</span>
+                            <div class="fw-bold text-dark fs-5">{{ prescription.patient_name }}</div>
+                            <div class="text-muted small">
+                                Patient ID: #PT{{ "%04d"|format(prescription.patient_id) }}
+                                {% if prescription.patient.age %} | Age: {{ prescription.patient.age }}{% endif %}
+                                {% if prescription.patient.gender %} | Gender: {{ prescription.patient.gender }}{% endif %}
+                                {% if prescription.patient.blood_group %} | Blood: <span class="badge bg-secondary-subtle text-secondary">{{ prescription.patient.blood_group }}</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prescribed Medications Table -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                            <i class="bi bi-capsule me-2"></i>Prescribed Medications & Dosage
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped align-middle mb-0">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th style="width: 5%;">#</th>
+                                        <th style="width: 30%;">Medicine</th>
+                                        <th style="width: 15%;">Dosage</th>
+                                        <th style="width: 18%;">Frequency</th>
+                                        <th style="width: 14%;">Duration</th>
+                                        <th style="width: 18%;">Instructions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in prescription.items %}
+                                    <tr>
+                                        <td class="text-center fw-semibold text-muted">{{ loop.index }}</td>
+                                        <td>
+                                            <div class="fw-bold text-dark">{{ item.medicine_name }}</div>
+                                            <small class="text-muted">
+                                                {{ item.medicine_form }} {% if item.medicine_strength %}({{ item.medicine_strength }}){% endif %}
+                                            </small>
+                                        </td>
+                                        <td><span class="badge bg-light text-dark border">{{ item.dosage }}</span></td>
+                                        <td>{{ item.frequency }}</td>
+                                        <td>{{ item.duration }}</td>
+                                        <td>
+                                            {% if item.instructions %}
+                                                <span class="text-dark small"><i class="bi bi-info-circle me-1 text-primary"></i>{{ item.instructions }}</span>
+                                            {% else %}
+                                                <span class="text-muted small">—</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Clinical Notes -->
+                    {% if prescription.notes %}
+                    <div class="mb-4 p-3 bg-light rounded-3 border-start border-primary border-4">
+                        <h6 class="fw-bold text-dark mb-1">Clinical Remarks / Advice:</h6>
+                        <p class="mb-0 text-secondary" style="white-space: pre-wrap;">{{ prescription.notes }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Footer / Signature block -->
+                    <div class="row pt-4 mt-4 border-top">
+                        <div class="col-6">
+                            <small class="text-muted d-block">Prescription issued on {{ prescription.prescription_date.strftime('%B %d, %Y at %H:%M UTC') }}</small>
+                            <small class="text-muted">Hospital Record: MediCare HMS Module 9</small>
+                        </div>
+                        <div class="col-6 text-end">
+                            <div class="fw-bold text-dark">Dr. {{ prescription.doctor_name }}</div>
+                            <small class="text-muted d-block">{{ prescription.doctor_specialization }}</small>
+                            <span class="badge bg-light text-muted border mt-1">Verified Medical Doctor</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Footer Actions (Hidden on print) -->
+                <div class="card-footer bg-light p-3 d-flex flex-wrap justify-content-between align-items-center gap-2 d-print-none">
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('doctor.prescriptions_list') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Prescriptions
+                        </a>
+                        <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                            <i class="bi bi-printer me-1"></i> Print Prescription
+                        </button>
+                    </div>
+
+                    {% if doctor and prescription.doctor_id == doctor.doctor_id and prescription.is_active %}
+                    <div class="d-flex gap-2">
+                        <!-- Mark as Completed form -->
+                        <form method="POST" action="{{ url_for('doctor.prescription_update_status', prescription_id=prescription.prescription_id) }}" onsubmit="return confirm('Mark this prescription regimen as Completed?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="status" value="Completed">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check2-circle me-1"></i> Mark as Completed
+                            </button>
+                        </form>
+                        <!-- Cancel prescription form -->
+                        <form method="POST" action="{{ url_for('doctor.prescription_update_status', prescription_id=prescription.prescription_id) }}" onsubmit="return confirm('Are you sure you want to cancel this prescription?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="status" value="Cancelled">
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="bi bi-x-circle me-1"></i> Cancel Prescription
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

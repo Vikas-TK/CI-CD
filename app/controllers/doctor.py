@@ -4,10 +4,14 @@ from app.models.appointment import AppointmentStatus
 from app.models.admission import Admission, AdmissionStatus
 from app.models.ward import Ward, WardStatus
 from app.models.room import Room
+from app.models.patient import Patient
+from app.models.prescription import Prescription, PrescriptionItem, PrescriptionStatus
+from app.models.medicine import Medicine
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.appointment_service import AppointmentService
 from app.services.admission_service import AdmissionService
+from app.services.prescription_service import PrescriptionService
 from app.utils.decorators import doctor_required
 
 doctor_bp = Blueprint("doctor", __name__)
@@ -251,3 +255,172 @@ def admission_details(admission_id):
         return redirect(url_for("doctor.admissions_list"))
 
     return render_template("doctor/admissions/view.html", admission=admission)
+
+
+# ---------------------------------------------------------
+# PRESCRIPTION MANAGEMENT (MODULE 9)
+# ---------------------------------------------------------
+
+@doctor_bp.route("/prescriptions", methods=["GET"])
+@doctor_required
+def prescriptions_list():
+    """Doctor view of prescriptions authored by the authenticated doctor."""
+    doctor = DoctorService.get_doctor_by_user_id(current_user.user_id)
+    if not doctor:
+        flash("Doctor profile not found.", "danger")
+        return redirect(url_for("doctor.dashboard"))
+
+    search_query = request.args.get("search", "").strip()
+    status_filter = request.args.get("status", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    pagination = PrescriptionService.get_prescriptions_by_doctor(
+        doctor_id=doctor.doctor_id,
+        status=status_filter or None,
+        search=search_query or None,
+        page=page,
+        per_page=10
+    )
+    prescriptions = pagination.items if pagination else []
+    stats = PrescriptionService.get_prescription_stats(doctor_id=doctor.doctor_id)
+
+    return render_template(
+        "doctor/prescriptions/index.html",
+        doctor=doctor,
+        prescriptions=prescriptions,
+        pagination=pagination,
+        stats=stats,
+        search_query=search_query,
+        current_status=status_filter,
+        all_statuses=PrescriptionStatus.ALL_STATUSES
+    )
+
+
+@doctor_bp.route("/prescriptions/create", methods=["GET", "POST"])
+@doctor_required
+def prescription_create():
+    """Doctor form and handler to compose a multi-drug medical prescription."""
+    doctor = DoctorService.get_doctor_by_user_id(current_user.user_id)
+    if not doctor:
+        flash("Doctor profile not found.", "danger")
+        return redirect(url_for("doctor.dashboard"))
+
+    if request.method == "POST":
+        patient_id = request.form.get("patient_id", "").strip()
+        prescription_date = request.form.get("prescription_date", "").strip()
+        notes = request.form.get("notes", "").strip()
+
+        # Extract dynamic medicine items from form arrays
+        medicine_ids = request.form.getlist("medicine_id[]") or request.form.getlist("medicine_id")
+        dosages = request.form.getlist("dosage[]") or request.form.getlist("dosage")
+        frequencies = request.form.getlist("frequency[]") or request.form.getlist("frequency")
+        durations = request.form.getlist("duration[]") or request.form.getlist("duration")
+        instructions_list = request.form.getlist("instructions[]") or request.form.getlist("instructions")
+
+        items_data = []
+        for i in range(len(medicine_ids)):
+            if medicine_ids[i].strip():
+                items_data.append({
+                    "medicine_id": medicine_ids[i].strip(),
+                    "dosage": dosages[i].strip() if i < len(dosages) else "",
+                    "frequency": frequencies[i].strip() if i < len(frequencies) else "",
+                    "duration": durations[i].strip() if i < len(durations) else "",
+                    "instructions": instructions_list[i].strip() if i < len(instructions_list) else ""
+                })
+
+        # Handle JSON submission if submitted via AJAX/API
+        if not items_data and request.is_json:
+            json_body = request.get_json() or {}
+            patient_id = json_body.get("patient_id", patient_id)
+            prescription_date = json_body.get("prescription_date", prescription_date)
+            notes = json_body.get("notes", notes)
+            items_data = json_body.get("items", [])
+
+        prescription, errors = PrescriptionService.create_prescription(
+            doctor_id=doctor.doctor_id,
+            patient_id=patient_id,
+            items_data=items_data,
+            prescription_date=prescription_date or None,
+            notes=notes or None
+        )
+
+        if errors:
+            for err in errors:
+                flash(err, "danger")
+            patients = Patient.query.all()
+            medicines = PrescriptionService.get_all_medicines()
+            return render_template(
+                "doctor/prescriptions/create.html",
+                doctor=doctor,
+                patients=patients,
+                medicines=medicines,
+                form_data=request.form,
+                prefilled_patient_id=patient_id
+            ), 400
+
+        flash(f"Prescription #RX{prescription.prescription_id:04d} issued successfully for '{prescription.patient_name}'.", "success")
+        return redirect(url_for("doctor.prescription_details", prescription_id=prescription.prescription_id))
+
+    preselected_patient_id = request.args.get("patient_id", type=int)
+    patients = Patient.query.all()
+    medicines = PrescriptionService.get_all_medicines()
+
+    return render_template(
+        "doctor/prescriptions/create.html",
+        doctor=doctor,
+        patients=patients,
+        medicines=medicines,
+        prefilled_patient_id=preselected_patient_id
+    )
+
+
+@doctor_bp.route("/prescriptions/<int:prescription_id>", methods=["GET"])
+@doctor_required
+def prescription_details(prescription_id):
+    """Doctor detailed view of a prescription."""
+    doctor = DoctorService.get_doctor_by_user_id(current_user.user_id)
+    if not doctor:
+        flash("Doctor profile not found.", "danger")
+        return redirect(url_for("doctor.dashboard"))
+
+    prescription = PrescriptionService.get_prescription_by_id(prescription_id)
+    if not prescription:
+        flash("Prescription record not found.", "danger")
+        return redirect(url_for("doctor.prescriptions_list"))
+
+    return render_template(
+        "doctor/prescriptions/view.html",
+        doctor=doctor,
+        prescription=prescription
+    )
+
+
+@doctor_bp.route("/prescriptions/<int:prescription_id>/status", methods=["POST"])
+@doctor_required
+def prescription_update_status(prescription_id):
+    """Doctor updates the status of their prescription (e.g., Completed or Cancelled)."""
+    doctor = DoctorService.get_doctor_by_user_id(current_user.user_id)
+    if not doctor:
+        flash("Doctor profile not found.", "danger")
+        return redirect(url_for("doctor.dashboard"))
+
+    prescription = PrescriptionService.get_prescription_by_id(prescription_id)
+    if not prescription or prescription.doctor_id != doctor.doctor_id:
+        flash("Prescription not found or unauthorized.", "danger")
+        return redirect(url_for("doctor.prescriptions_list"))
+
+    new_status = request.form.get("status", "").strip()
+    updated, errors = PrescriptionService.update_prescription_status(
+        prescription_id=prescription_id,
+        new_status=new_status,
+        user=current_user
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+    else:
+        flash(f"Prescription #RX{prescription_id:04d} status updated to '{new_status}'.", "success")
+
+    return redirect(url_for("doctor.prescription_details", prescription_id=prescription_id))
+

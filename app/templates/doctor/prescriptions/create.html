@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Create Medical Prescription{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('doctor.dashboard') }}">Doctor Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('doctor.prescriptions_list') }}">Prescriptions</a></li>
+            <li class="breadcrumb-item active" aria-current="page">New Prescription</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="card-title mb-0 fw-bold">
+                        <i class="bi bi-file-earmark-medical me-2"></i>New Medical Prescription
+                    </h5>
+                    <small class="text-white-50">Prescribing as: Dr. {{ doctor.full_name }} ({{ doctor.specialization }})</small>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('doctor.prescription_create') }}" id="prescriptionForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-7">
+                                <label for="patient_id" class="form-label fw-semibold">Patient <span class="text-danger">*</span></label>
+                                <select name="patient_id" id="patient_id" class="form-select" required>
+                                    <option value="">-- Select Patient --</option>
+                                    {% for p in patients %}
+                                    <option value="{{ p.patient_id }}" {% if prefilled_patient_id|string == p.patient_id|string %}selected{% endif %}>
+                                        #PT{{ "%04d"|format(p.patient_id) }} - {{ p.full_name }} (Age: {{ p.age or 'N/A' }}, Gender: {{ p.gender or 'N/A' }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label for="prescription_date" class="form-label fw-semibold">Prescription Date</label>
+                                <input type="date" name="prescription_date" id="prescription_date" class="form-control" value="{{ form_data.prescription_date if form_data else '' }}">
+                                <small class="text-muted">Defaults to current date if left empty.</small>
+                            </div>
+                        </div>
+
+                        <!-- Prescription Items Section -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-dark mb-0">
+                                    <i class="bi bi-capsule me-1 text-primary"></i> Prescribed Medicines & Instructions <span class="text-danger">*</span>
+                                </h6>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="addMedicineBtn">
+                                    <i class="bi bi-plus-circle me-1"></i> Add Another Medicine
+                                </button>
+                            </div>
+                            <p class="text-muted small mb-3">Add at least one medicine. Avoid duplicate medicine entries; specify total dosage in a single row.</p>
+
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle" id="medicineTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 28%;">Medicine <span class="text-danger">*</span></th>
+                                            <th style="width: 18%;">Dosage <span class="text-danger">*</span></th>
+                                            <th style="width: 18%;">Frequency <span class="text-danger">*</span></th>
+                                            <th style="width: 16%;">Duration <span class="text-danger">*</span></th>
+                                            <th style="width: 15%;">Instructions</th>
+                                            <th style="width: 5%;" class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="medicineItemsBody">
+                                        <tr class="medicine-row">
+                                            <td>
+                                                <select name="medicine_id[]" class="form-select form-select-sm medicine-select" required>
+                                                    <option value="">-- Select Medicine --</option>
+                                                    {% for med in medicines %}
+                                                    <option value="{{ med.medicine_id }}">{{ med.display_name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="text" name="dosage[]" class="form-control form-select-sm" placeholder="e.g. 500 mg, 1 tablet" required>
+                                            </td>
+                                            <td>
+                                                <input type="text" name="frequency[]" class="form-control form-select-sm" placeholder="e.g. 2 times/day" required>
+                                            </td>
+                                            <td>
+                                                <input type="text" name="duration[]" class="form-control form-select-sm" placeholder="e.g. 5 days, 1 week" required>
+                                            </td>
+                                            <td>
+                                                <input type="text" name="instructions[]" class="form-control form-select-sm" placeholder="e.g. After meals">
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" title="Remove row" disabled>
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Notes / Clinical Remarks -->
+                        <div class="mb-4">
+                            <label for="notes" class="form-label fw-semibold">Clinical Notes / Dietary Advice</label>
+                            <textarea name="notes" id="notes" rows="3" class="form-control" placeholder="Optional notes for patient, diagnosis remarks, precautions...">{{ form_data.notes if form_data else '' }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <a href="{{ url_for('doctor.prescriptions_list') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-circle me-1"></i> Issue Prescription
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const tableBody = document.getElementById("medicineItemsBody");
+    const addBtn = document.getElementById("addMedicineBtn");
+
+    function updateRemoveButtons() {
+        const rows = tableBody.querySelectorAll(".medicine-row");
+        rows.forEach(row => {
+            const removeBtn = row.querySelector(".remove-row-btn");
+            if (rows.length === 1) {
+                removeBtn.disabled = true;
+            } else {
+                removeBtn.disabled = false;
+            }
+        });
+    }
+
+    addBtn.addEventListener("click", function() {
+        const firstRow = tableBody.querySelector(".medicine-row");
+        const newRow = firstRow.cloneNode(true);
+        
+        // Clear input values in new row
+        newRow.querySelectorAll("input").forEach(input => input.value = "");
+        newRow.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
+
+        // Add event listener to new remove button
+        newRow.querySelector(".remove-row-btn").addEventListener("click", function() {
+            newRow.remove();
+            updateRemoveButtons();
+        });
+
+        tableBody.appendChild(newRow);
+        updateRemoveButtons();
+    });
+
+    tableBody.addEventListener("click", function(e) {
+        if (e.target.closest(".remove-row-btn")) {
+            const btn = e.target.closest(".remove-row-btn");
+            const row = btn.closest(".medicine-row");
+            const rows = tableBody.querySelectorAll(".medicine-row");
+            if (rows.length > 1) {
+                row.remove();
+                updateRemoveButtons();
+            }
+        }
+    });
+
+    updateRemoveButtons();
+});
+</script>
+{% endblock %}

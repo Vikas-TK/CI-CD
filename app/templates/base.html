@@ -98,6 +98,11 @@
                                     <i class="bi bi-box-arrow-in-right me-1"></i> Admissions
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('admin.prescription') %}active{% endif %}" href="{{ url_for('admin.prescriptions_list') }}">
+                                    <i class="bi bi-file-earmark-medical me-1"></i> Prescriptions
+                                </a>
+                            </li>
                         {% elif current_user.is_doctor %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'doctor.dashboard' %}active{% endif %}" href="{{ url_for('doctor.dashboard') }}">
@@ -112,6 +117,11 @@
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint and request.endpoint.startswith('doctor.appointments') %}active{% endif %}" href="{{ url_for('doctor.appointments_list') }}">
                                     <i class="bi bi-calendar-check me-1"></i> Appointments
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('doctor.prescription') %}active{% endif %}" href="{{ url_for('doctor.prescriptions_list') }}">
+                                    <i class="bi bi-file-earmark-medical me-1"></i> Prescriptions
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -165,6 +175,11 @@
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'patient.dashboard' %}active{% endif %}" href="{{ url_for('patient.dashboard') }}">
                                     <i class="bi bi-heart-pulse me-1"></i> Patient Portal
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('patient.list_prescriptions') or request.endpoint.startswith('patient.view_prescription') %}active{% endif %}" href="{{ url_for('patient.list_prescriptions') }}">
+                                    <i class="bi bi-file-earmark-medical me-1"></i> My Prescriptions
                                 </a>
                             </li>
                             <li class="nav-item">

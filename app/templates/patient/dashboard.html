@@ -105,10 +105,14 @@
                     </div>
                     <div>
                         <h6 class="text-muted mb-0">Prescriptions</h6>
-                        <h5 class="fw-bold mb-0">Medications</h5>
+                        <h5 class="fw-bold mb-0 text-success">Medications</h5>
                     </div>
                 </div>
-                <p class="card-text text-muted small">Access digital prescriptions (Module 9).</p>
+                <div class="d-grid mt-2">
+                    <a href="{{ url_for('patient.list_prescriptions') }}" class="btn btn-sm btn-outline-success fw-semibold">
+                        <i class="bi bi-eye me-1"></i> My Prescriptions
+                    </a>
+                </div>
             </div>
         </div>
     </div>

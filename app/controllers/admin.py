@@ -8,6 +8,9 @@ from app.models.appointment import AppointmentStatus
 from app.models.room import Room, RoomType, RoomStatus
 from app.models.ward import Ward, WardType, WardStatus
 from app.models.admission import Admission, AdmissionStatus
+from app.models.doctor import Doctor
+from app.models.prescription import Prescription, PrescriptionItem, PrescriptionStatus
+from app.models.medicine import Medicine
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
@@ -16,6 +19,7 @@ from app.services.appointment_service import AppointmentService
 from app.services.room_service import RoomService
 from app.services.ward_service import WardService
 from app.services.admission_service import AdmissionService
+from app.services.prescription_service import PrescriptionService
 from app.utils.decorators import admin_required
 
 
@@ -39,6 +43,7 @@ def dashboard():
     room_stats = RoomService.get_room_stats()
     ward_stats = WardService.get_ward_stats()
     admission_stats = AdmissionService.get_admission_stats()
+    prescription_stats = PrescriptionService.get_prescription_stats()
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
 
     return render_template(
@@ -55,6 +60,7 @@ def dashboard():
         room_stats=room_stats,
         ward_stats=ward_stats,
         admission_stats=admission_stats,
+        prescription_stats=prescription_stats,
         recent_users=recent_users
     )
 
@@ -1197,4 +1203,88 @@ def admission_transfer(admission_id):
         available_rooms=available_rooms,
         active_wards=active_wards
     )
+
+
+# ==============================================================================
+# MODULE 9: ADMINISTRATOR PRESCRIPTION MANAGEMENT
+# ==============================================================================
+
+@admin_bp.route("/prescriptions", methods=["GET"])
+@admin_required
+def prescriptions_list():
+    """Administrator Prescription directory with search, combinable filters, and KPI stats."""
+    search_query = request.args.get("search", "").strip()
+    status_filter = request.args.get("status", "").strip()
+    doctor_filter = request.args.get("doctor_id", type=int)
+    patient_filter = request.args.get("patient_id", type=int)
+    medicine_filter = request.args.get("medicine_id", type=int)
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    pagination = PrescriptionService.get_all_prescriptions(
+        doctor_id=doctor_filter,
+        patient_id=patient_filter,
+        status=status_filter or None,
+        medicine_id=medicine_filter,
+        search=search_query or None,
+        start_date=start_date or None,
+        end_date=end_date or None,
+        page=page,
+        per_page=12
+    )
+    prescriptions = pagination.items if pagination else []
+    stats = PrescriptionService.get_prescription_stats()
+    doctors = Doctor.query.all()
+    medicines = PrescriptionService.get_all_medicines()
+
+    return render_template(
+        "admin/prescriptions/index.html",
+        prescriptions=prescriptions,
+        pagination=pagination,
+        stats=stats,
+        doctors=doctors,
+        medicines=medicines,
+        search_query=search_query,
+        current_status=status_filter,
+        current_doctor_id=doctor_filter,
+        current_patient_id=patient_filter,
+        current_medicine_id=medicine_filter,
+        current_start_date=start_date,
+        current_end_date=end_date,
+        all_statuses=PrescriptionStatus.ALL_STATUSES
+    )
+
+
+@admin_bp.route("/prescriptions/<int:prescription_id>", methods=["GET"])
+@admin_required
+def prescription_details(prescription_id):
+    """Administrator view of detailed medical prescription."""
+    prescription = PrescriptionService.get_prescription_by_id(prescription_id)
+    if not prescription:
+        flash("Prescription record not found.", "danger")
+        return redirect(url_for("admin.prescriptions_list"))
+
+    return render_template("admin/prescriptions/view.html", prescription=prescription)
+
+
+@admin_bp.route("/prescriptions/<int:prescription_id>/status", methods=["POST"])
+@admin_required
+def prescription_update_status(prescription_id):
+    """Administrator update of prescription status."""
+    new_status = request.form.get("status", "").strip()
+    updated, errors = PrescriptionService.update_prescription_status(
+        prescription_id=prescription_id,
+        new_status=new_status,
+        user=current_user
+    )
+
+    if errors:
+        for err in errors:
+            flash(err, "danger")
+    else:
+        flash(f"Prescription #RX{prescription_id:04d} status updated to '{new_status}'.", "success")
+
+    return redirect(url_for("admin.prescription_details", prescription_id=prescription_id))
+
 

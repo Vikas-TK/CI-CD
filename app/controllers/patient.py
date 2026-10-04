@@ -2,10 +2,12 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import current_user
 from app.models.appointment import AppointmentStatus
 from app.models.admission import Admission, AdmissionStatus
+from app.models.prescription import Prescription, PrescriptionItem, PrescriptionStatus
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
 from app.services.appointment_service import AppointmentService
 from app.services.admission_service import AdmissionService
+from app.services.prescription_service import PrescriptionService
 from app.utils.decorators import patient_required
 
 patient_bp = Blueprint("patient", __name__)
@@ -318,3 +320,62 @@ def admission_history():
         admissions=admissions,
         pagination=pagination
     )
+
+
+# ---------------------------------------------------------
+# PRESCRIPTION ACCESS (MODULE 9)
+# ---------------------------------------------------------
+
+@patient_bp.route("/prescriptions", methods=["GET"])
+@patient_required
+def list_prescriptions():
+    """Patient view of all prescriptions prescribed to them."""
+    patient = PatientService.get_patient_by_user_id(current_user.user_id)
+    if not patient:
+        flash("Please complete your patient profile first.", "info")
+        return redirect(url_for("patient.complete_profile"))
+
+    status_filter = request.args.get("status", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    pagination = PrescriptionService.get_prescriptions_by_patient(
+        patient_id=patient.patient_id,
+        status=status_filter or None,
+        page=page,
+        per_page=10
+    )
+    prescriptions = pagination.items if pagination else []
+    stats = PrescriptionService.get_prescription_stats(patient_id=patient.patient_id)
+
+    return render_template(
+        "patient/prescriptions/index.html",
+        patient=patient,
+        prescriptions=prescriptions,
+        pagination=pagination,
+        stats=stats,
+        current_status=status_filter,
+        all_statuses=PrescriptionStatus.ALL_STATUSES
+    )
+
+
+@patient_bp.route("/prescriptions/<int:prescription_id>", methods=["GET"])
+@patient_required
+def view_prescription(prescription_id):
+    """Patient view of specific prescription details with strict ownership verification."""
+    patient = PatientService.get_patient_by_user_id(current_user.user_id)
+    if not patient:
+        flash("Please complete your patient profile first.", "info")
+        return redirect(url_for("patient.complete_profile"))
+
+    prescription = PrescriptionService.get_prescription_by_id(prescription_id)
+    # Strict backend authorization: patient cannot view another patient's prescription
+    if not prescription or prescription.patient_id != patient.patient_id:
+        flash("Prescription record not found or unauthorized.", "danger")
+        return redirect(url_for("patient.list_prescriptions"))
+
+    return render_template(
+        "patient/prescriptions/view.html",
+        patient=patient,
+        prescription=prescription
+    )
+
