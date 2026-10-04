@@ -43,6 +43,7 @@ def dashboard():
     room_stats = RoomService.get_room_stats()
     ward_stats = WardService.get_ward_stats()
     admission_stats = AdmissionService.get_admission_stats()
+    prescription_stats = PrescriptionService.get_prescription_stats()
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
 
     return render_template(
@@ -59,6 +60,7 @@ def dashboard():
         room_stats=room_stats,
         ward_stats=ward_stats,
         admission_stats=admission_stats,
+        prescription_stats=prescription_stats,
         recent_users=recent_users
     )
 

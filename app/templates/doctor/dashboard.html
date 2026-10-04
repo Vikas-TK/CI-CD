@@ -56,16 +56,24 @@
             <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
                     <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-3 me-3">
-                        <i class="bi bi-journal-medical fs-3"></i>
+                        <i class="bi bi-file-earmark-medical fs-3"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted mb-0">Clinical Records</h6>
-                        <h4 class="fw-bold mb-0">Prescriptions</h4>
+                        <h6 class="text-muted mb-0">Clinical Regimens</h6>
+                        <h4 class="fw-bold mb-0 text-primary">Prescriptions</h4>
                     </div>
                 </div>
-                <p class="card-text text-muted small">
-                    Issue digital prescriptions, medicine dosage, and patient instructions (Module 9).
+                <p class="card-text text-muted small mb-3">
+                    Issue digital prescriptions, configure multi-drug dosages, and track treatment histories.
                 </p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('doctor.prescription_create') }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i> New Prescription
+                    </a>
+                    <a href="{{ url_for('doctor.prescriptions_list') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-list-ul me-1"></i> View Prescriptions
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -79,12 +87,17 @@
                     </div>
                     <div>
                         <h6 class="text-muted mb-0">Inpatient Care</h6>
-                        <h4 class="fw-bold mb-0">Admissions</h4>
+                        <h4 class="fw-bold mb-0 text-success">Admissions</h4>
                     </div>
                 </div>
-                <p class="card-text text-muted small">
-                    Track admitted patients across wards and private recovery rooms (Module 8).
+                <p class="card-text text-muted small mb-3">
+                    Track admitted patients across wards and private recovery rooms.
                 </p>
+                <div class="d-grid">
+                    <a href="{{ url_for('doctor.admissions_list') }}" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Inpatient Directory
+                    </a>
+                </div>
             </div>
         </div>
     </div>

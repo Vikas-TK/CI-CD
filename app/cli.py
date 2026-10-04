@@ -10,6 +10,8 @@ from app.models.appointment import Appointment, AppointmentStatus
 from app.models.room import Room, RoomType, RoomStatus
 from app.models.ward import Ward, WardType, WardStatus
 from app.models.admission import Admission, AdmissionStatus
+from app.models.medicine import Medicine, DosageForm
+from app.models.prescription import Prescription, PrescriptionItem, PrescriptionStatus
 from app.services.user_service import UserService
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
@@ -18,6 +20,7 @@ from app.services.appointment_service import AppointmentService
 from app.services.room_service import RoomService
 from app.services.ward_service import WardService
 from app.services.admission_service import AdmissionService
+from app.services.prescription_service import PrescriptionService
 
 
 
@@ -175,6 +178,65 @@ def _seed_sample_admissions():
         )
 
 
+def _seed_sample_medicines():
+    sample_meds = [
+        ("Paracetamol", "Acetaminophen", "Analgesic & Antipyretic", DosageForm.TABLET, "500 mg", "PharmaCorp"),
+        ("Amoxicillin", "Amoxicillin Trihydrate", "Antibiotic", DosageForm.CAPSULE, "250 mg", "MediLife Labs"),
+        ("Cetirizine", "Cetirizine Hydrochloride", "Antihistamine", DosageForm.TABLET, "10 mg", "AllergyCare Inc"),
+        ("Omeprazole", "Omeprazole", "Proton Pump Inhibitor", DosageForm.CAPSULE, "20 mg", "GastroHealth"),
+        ("Ibuprofen", "Ibuprofen", "NSAID Anti-inflammatory", DosageForm.TABLET, "400 mg", "HealthPharma"),
+        ("Azithromycin", "Azithromycin Dihydrate", "Antibiotic", DosageForm.TABLET, "500 mg", "MediLife Labs"),
+        ("Salbutamol Inhaler", "Albuterol", "Bronchodilator", DosageForm.INHALER, "100 mcg", "RespiraCare"),
+        ("Cough Relief Syrup", "Dextromethorphan", "Antitussive", DosageForm.SYRUP, "100 ml", "CareSyrups"),
+    ]
+    created = 0
+    for name, gen, cat, form, strength, mfg in sample_meds:
+        if not Medicine.query.filter_by(name=name).first():
+            med = Medicine(
+                name=name,
+                generic_name=gen,
+                category=cat,
+                dosage_form=form,
+                strength=strength,
+                manufacturer=mfg
+            )
+            db.session.add(med)
+            created += 1
+    if created > 0:
+        db.session.commit()
+    return created
+
+
+def _seed_sample_prescriptions():
+    doctor = Doctor.query.first()
+    patient = Patient.query.first()
+    if doctor and patient and not Prescription.query.first():
+        med1 = Medicine.query.filter_by(name="Paracetamol").first()
+        med2 = Medicine.query.filter_by(name="Cetirizine").first()
+        if med1 and med2:
+            PrescriptionService.create_prescription(
+                doctor_id=doctor.doctor_id,
+                patient_id=patient.patient_id,
+                items_data=[
+                    {
+                        "medicine_id": med1.medicine_id,
+                        "dosage": "500 mg",
+                        "frequency": "2 times/day",
+                        "duration": "5 days",
+                        "instructions": "Take after meals with water."
+                    },
+                    {
+                        "medicine_id": med2.medicine_id,
+                        "dosage": "10 mg",
+                        "frequency": "Once daily",
+                        "duration": "5 days",
+                        "instructions": "Take at night before sleep."
+                    }
+                ],
+                notes="Patient recovering well. Complete full course of prescribed antihistamines. Drink plenty of fluids."
+            )
+
+
 def register_cli_commands(app):
     """Registers CLI commands on the Flask application instance."""
 
@@ -221,7 +283,7 @@ def register_cli_commands(app):
 
     @app.cli.command("seed-data")
     def seed_data():
-        """Seeds sample users, doctors, patients, staff, rooms, wards, admissions, and appointments for evaluation."""
+        """Seeds sample users, doctors, patients, staff, rooms, wards, admissions, medicines, and prescriptions for evaluation."""
         db.create_all()
         created_count = _seed_sample_users()
         _seed_sample_patient()
@@ -231,7 +293,9 @@ def register_cli_commands(app):
         _seed_sample_rooms()
         _seed_sample_wards()
         _seed_sample_admissions()
-        msg = f"Seeded {created_count} demo user accounts, doctor, patient, staff, rooms, wards, admissions, and appointments."
+        _seed_sample_medicines()
+        _seed_sample_prescriptions()
+        msg = f"Seeded {created_count} demo user accounts, doctor, patient, staff, rooms, wards, admissions, formulary medicines, and prescriptions."
         click.echo(click.style(msg, fg="green"))
 
 
