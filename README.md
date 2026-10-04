@@ -123,6 +123,17 @@ stateDiagram-v2
   - **Doctor**: Read-only clinical inpatient directory (`/doctor/admissions`) and admission chart (`/doctor/admissions/<id>`).
   - **Patient**: View personal active inpatient stay (`/patient/admission`) and complete personal admission history (`/patient/admissions/history`).
 
+### 2.9 Module 9: Prescription Management
+- **Multi-Drug Normalized Prescribing Architecture**: Encapsulates clinical prescription orders through a normalized 1-to-many relationship (`Prescription` -> `PrescriptionItem` -> `Medicine`). Avoids flat strings or repeated columns.
+- **Medicine Formulary Catalog**: Normalized `medicines` reference table (`medicine_id`, `name`, `generic_name`, `category`, `dosage_form`, `strength`, `manufacturer`) ready for future Pharmacy Inventory (Module 10).
+- **Controlled Status Lifecycle**: `Active`, `Completed`, `Cancelled` with strict transition validations (prevents uncompleted/cancelled reactivation).
+- **Transactional Atomic Guarantees**: Enforces atomic commit across `prescriptions` header and all child `prescription_items`. Rolls back entirely upon item validation or database failure.
+- **Duplicate Medicine Prevention**: Enforces uniqueness on `(prescription_id, medicine_id)` preventing duplicate drug entries on the same prescription.
+- **Role-Based Prescription Workflows**:
+  - **Doctor**: Compose prescriptions (`/doctor/prescriptions/create`) with dynamic medicine rows, view authored prescriptions (`/doctor/prescriptions`), view details (`/doctor/prescriptions/<id>`), and manage treatment status (`/doctor/prescriptions/<id>/status`).
+  - **Patient**: View personal active prescriptions (`/patient/prescriptions`) and dosage instructions (`/patient/prescriptions/<id>`) with strict backend ownership verification.
+  - **Administrator**: Hospital-wide prescription registry (`/admin/prescriptions`), detail chart (`/admin/prescriptions/<id>`), and status updates.
+
 ---
 
 ## 3. Technology Stack
@@ -240,6 +251,44 @@ stateDiagram-v2
 | `created_at` | `DATETIME` | `NOT NULL` | Admission record creation timestamp (UTC) |
 | `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
 
+### 4.9 `medicines` Table
+| Column Name | Data Type | Constraints | Description |
+|---|---|---|---|
+| `medicine_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique medicine primary key |
+| `name` | `VARCHAR(100)` | `NOT NULL, UNIQUE, INDEX` | Brand / Drug name (e.g. `Paracetamol`) |
+| `generic_name` | `VARCHAR(100)` | `NULLABLE` | Pharmacological generic name |
+| `category` | `VARCHAR(50)` | `NULLABLE, INDEX` | Therapeutic classification |
+| `dosage_form` | `VARCHAR(50)` | `NOT NULL, DEFAULT 'Tablet'` | `Tablet`, `Capsule`, `Syrup`, `Injection`, `Ointment`, `Drops`, `Inhaler`, `Other` |
+| `strength` | `VARCHAR(50)` | `NULLABLE` | Drug strength (e.g. `500 mg`, `10 ml`) |
+| `manufacturer` | `VARCHAR(100)` | `NULLABLE` | Pharmaceutical manufacturer |
+| `created_at` | `DATETIME` | `NOT NULL` | Drug creation timestamp (UTC) |
+| `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
+
+### 4.10 `prescriptions` Table
+| Column Name | Data Type | Constraints | Description |
+|---|---|---|---|
+| `prescription_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique prescription primary key |
+| `patient_id` | `INTEGER` | `NOT NULL, FOREIGN KEY (patients.patient_id) ON DELETE CASCADE, INDEX` | Foreign key to patient |
+| `doctor_id` | `INTEGER` | `NOT NULL, FOREIGN KEY (doctors.doctor_id) ON DELETE CASCADE, INDEX` | Foreign key to prescribing doctor |
+| `prescription_date` | `DATETIME` | `NOT NULL, INDEX` | Prescription issue date (UTC) |
+| `notes` | `TEXT` | `NULLABLE` | Doctor diagnosis remarks / dietary advice |
+| `status` | `VARCHAR(20)` | `NOT NULL, INDEX, DEFAULT 'Active'` | `Active`, `Completed`, `Cancelled` |
+| `created_at` | `DATETIME` | `NOT NULL` | Creation timestamp (UTC) |
+| `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
+
+### 4.11 `prescription_items` Table
+| Column Name | Data Type | Constraints | Description |
+|---|---|---|---|
+| `prescription_item_id` | `INTEGER` | `PRIMARY KEY, AUTO_INCREMENT` | Unique item line primary key |
+| `prescription_id` | `INTEGER` | `NOT NULL, FOREIGN KEY (prescriptions.prescription_id) ON DELETE CASCADE, INDEX` | Link to prescription header |
+| `medicine_id` | `INTEGER` | `NOT NULL, FOREIGN KEY (medicines.medicine_id) ON DELETE RESTRICT, INDEX` | Foreign key to medicine formulary |
+| `dosage` | `VARCHAR(50)` | `NOT NULL` | Dosage amount (e.g. `500 mg`, `1 tablet`) |
+| `frequency` | `VARCHAR(50)` | `NOT NULL` | Frequency (e.g. `2 times/day`, `Once at night`) |
+| `duration` | `VARCHAR(50)` | `NOT NULL` | Duration of course (e.g. `5 days`, `2 weeks`) |
+| `instructions` | `VARCHAR(255)` | `NULLABLE` | Patient instructions (e.g. `After meals`) |
+| `created_at` | `DATETIME` | `NOT NULL` | Creation timestamp (UTC) |
+| `updated_at` | `DATETIME` | `NOT NULL` | Last update timestamp (UTC) |
+
 ---
 
 ## 5. Application Route Access Matrix
@@ -291,6 +340,9 @@ stateDiagram-v2
 | `/admin/admissions/<id>/discharge` | `POST` | Administrator | Discharge patient & release bed |
 | `/admin/admissions/<id>/cancel` | `POST` | Administrator | Cancel admission record |
 | `/admin/admissions/<id>/transfer` | `GET, POST` | Administrator | Transfer patient to new room |
+| `/admin/prescriptions` | `GET` | Administrator | Prescriptions master registry & KPI metrics |
+| `/admin/prescriptions/<id>` | `GET` | Administrator | View detailed prescription chart |
+| `/admin/prescriptions/<id>/status` | `POST` | Administrator | Update prescription status |
 | `/doctor/dashboard` | `GET` | Doctor | Doctor operational portal |
 | `/doctor/profile` | `GET` | Doctor | Doctor self-service profile |
 | `/doctor/profile/edit` | `GET` | Doctor | Doctor self-service edit form |
@@ -302,6 +354,10 @@ stateDiagram-v2
 | `/doctor/appointments/<id>/status` | `POST` | Doctor | Approve/Reject/Complete appointment |
 | `/doctor/admissions` | `GET` | Doctor | Read-only clinical inpatient directory |
 | `/doctor/admissions/<id>` | `GET` | Doctor | Read-only admission details chart |
+| `/doctor/prescriptions` | `GET` | Doctor | Prescriptions authored by doctor |
+| `/doctor/prescriptions/create` | `GET, POST` | Doctor | Compose multi-drug prescription |
+| `/doctor/prescriptions/<id>` | `GET` | Doctor | View prescription details & print sheet |
+| `/doctor/prescriptions/<id>/status` | `POST` | Doctor | Update prescription status (Complete/Cancel) |
 | `/staff/dashboard` | `GET` | Staff | Staff operational portal |
 | `/staff/profile` | `GET` | Staff | Staff self-service profile |
 | `/staff/profile/edit` | `GET` | Staff | Staff self-service edit form |
@@ -330,6 +386,8 @@ stateDiagram-v2
 | `/patient/appointments/<id>/cancel` | `POST` | Patient | Cancel pending/approved appointment |
 | `/patient/admission` | `GET` | Patient | View personal active inpatient stay |
 | `/patient/admissions/history` | `GET` | Patient | View personal inpatient stay history |
+| `/patient/prescriptions` | `GET` | Patient | View personal prescription list |
+| `/patient/prescriptions/<id>` | `GET` | Patient | View prescription dosage & instructions |
 | `/pharmacy/dashboard` | `GET` | Pharmacy Manager | Pharmacy inventory portal |
 
 
@@ -390,7 +448,7 @@ flask init-db
 # Bootstrap Initial Administrator
 flask create-admin --email admin@hospital.org --password AdminPassword123! --first-name System --last-name Admin --phone +1000000001
 
-# Seed sample users, doctors, staff, patients, appointments, rooms, wards, and admissions
+# Seed sample users, doctors, staff, patients, appointments, rooms, wards, admissions, medicines, and prescriptions
 flask seed-data
 ```
 
@@ -425,7 +483,7 @@ flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
 The project uses **GitHub Actions** exclusively (no Jenkins).
 
 ```
-feature/module-8-admission-management
+feature/module-9-prescription-management
               |
               | Pull Request
               v
@@ -494,5 +552,6 @@ Configure the following secrets in GitHub Repository Settings -> Secrets and Var
 
 - **`main`**: Production-ready code, deploys to production.
 - **`develop`**: Integration branch, deploys to staging.
-- **`feature/module-8-admission-management`**: Feature branch for Module 8 (Patient Admission / Stay Management) implementation.
+- **`feature/module-9-prescription-management`**: Feature branch for Module 9 (Prescription Management) implementation.
+
 
